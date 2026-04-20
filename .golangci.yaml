@@ -1,0 +1,97 @@
+version: "2"
+run:
+  concurrency: 8
+  allow-parallel-runners: true
+linters:
+  enable:
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - copyloopvar
+    - cyclop
+    - dogsled
+    - dupl
+    - durationcheck
+    - errcheck
+    - errname
+    - errchkjson
+    - errorlint
+    - forbidigo
+    - forcetypeassert
+    - funlen
+    - goconst
+    - gocognit
+    - gocritic
+    - gocyclo
+    - godox
+    - goheader
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - govet
+    - importas
+    - ineffassign
+    - lll
+    - maintidx
+    - makezero
+    - misspell
+    - nestif
+    - nilerr
+    - nilnil
+    - nlreturn
+    - noctx
+    - paralleltest
+    - prealloc
+    - predeclared
+    - promlinter
+    - revive
+    - staticcheck
+    - testpackage
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - unused
+  settings:
+    dupl:
+      threshold: 200
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+    funlen:
+      lines: 200
+      statements: 50
+    gocyclo:
+      min-complexity: 20
+    gosec:
+      excludes:
+        - G402
+        - G106
+        - G115
+    lll:
+      line-length: 145
+    nlreturn:
+      block-size: 3
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+    rules:
+      - path: internal/utils
+        text: "avoid meaningless package names"
+        linters:
+          - revive
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

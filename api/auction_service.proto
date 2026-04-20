@@ -1,0 +1,132 @@
+
+syntax = "proto3";
+
+package auctionservice;
+
+option go_package = "apigateway/api/grpc/auctionservice;auctionservice";
+option java_package = "ru.auctionservice.grpc.proto";
+option java_multiple_files = true;
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum LotStatus {
+  DRAFT  = 0;
+  ACTIVE = 1;
+  CLOSED = 2;
+}
+
+// ─── Lot Messages ─────────────────────────────────────────────────────────────
+
+// Full lot detail (returned by create / get-by-id / update)
+message LotFull {
+  int64  id            = 1;
+  string title         = 2;
+  string description   = 3;
+  string starting_price = 4;   // decimal as string, e.g. "1500.00"
+  string current_price  = 5;
+  LotStatus status     = 6;
+  string image_url     = 7;
+  int64  seller_id     = 8;
+  string created_at    = 9;    // ISO-8601
+  string updated_at    = 10;
+  string ends_at       = 11;
+}
+
+// Brief lot info (returned inside paginated list)
+message LotShort {
+  int64  id            = 1;
+  string title         = 2;
+  string current_price = 3;
+  LotStatus status     = 4;
+  string image_url     = 5;
+  string ends_at       = 6;
+}
+
+message CreateLotRequest {
+  string    title          = 1;
+  string    description    = 2;
+  string    starting_price = 3;
+  LotStatus status         = 4;
+  string    image_url      = 5;
+  int64     seller_id      = 6;
+  string    ends_at        = 7;  // ISO-8601, empty = not set
+}
+
+message GetLotRequest {
+  int64 id = 1;
+}
+
+message GetLotsRequest {
+  int32  page            = 1;
+  int32  size            = 2;
+  string sort            = 3;  // field name, e.g. "createdAt"
+  bool   filter_by_status = 4;
+  LotStatus status       = 5;
+}
+
+message GetLotsResponse {
+  repeated LotShort content        = 1;
+  int32             page           = 2;
+  int32             size           = 3;
+  int64             total_elements = 4;
+  int32             total_pages    = 5;
+  bool              first          = 6;
+  bool              last           = 7;
+}
+
+// optional fields: only sent fields are updated (partial update)
+message UpdateLotRequest {
+  int64            id            = 1;
+  optional string  title         = 2;
+  optional string  description   = 3;
+  optional string  starting_price = 4;
+  optional LotStatus status      = 5;
+  optional string  image_url     = 6;
+  optional string  ends_at       = 7;
+}
+
+message DeleteLotRequest {
+  int64 id = 1;
+}
+
+message DeleteLotResponse {}
+
+// ─── Bid Messages ─────────────────────────────────────────────────────────────
+
+message PlaceBidRequest {
+  int64  lot_id    = 1;
+  int64  bidder_id = 2;
+  string amount    = 3;  // decimal as string
+}
+
+message BidProto {
+  int64  id         = 1;
+  int64  lot_id     = 2;
+  int64  bidder_id  = 3;
+  string amount     = 4;
+  string created_at = 5;  // ISO-8601
+}
+
+message GetCurrentPriceRequest {
+  int64 lot_id = 1;
+}
+
+message CurrentPriceProto {
+  int64  lot_id        = 1;
+  string current_price = 2;
+}
+
+// ─── Services ─────────────────────────────────────────────────────────────────
+
+service LotGrpcService {
+  rpc CreateLot (CreateLotRequest) returns (LotFull);
+  rpc GetLot    (GetLotRequest)    returns (LotFull);
+  rpc GetLots   (GetLotsRequest)   returns (GetLotsResponse);
+  rpc UpdateLot (UpdateLotRequest) returns (LotFull);
+  rpc DeleteLot (DeleteLotRequest) returns (DeleteLotResponse);
+}
+
+service BidGrpcService {
+  rpc PlaceBid        (PlaceBidRequest)       returns (BidProto);
+  rpc GetCurrentPrice  (GetCurrentPriceRequest) returns (CurrentPriceProto);
+}
