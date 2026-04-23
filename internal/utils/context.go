@@ -11,6 +11,7 @@ func (c ctxKey) String() string {
 const (
 	CtxRequestID     = ctxKey("XRequestID")
 	CtxRequestMethod = ctxKey("method")
+	CtxUserID        = ctxKey("user_id")
 )
 
 func ExtractAttrs(ctx context.Context) []any {

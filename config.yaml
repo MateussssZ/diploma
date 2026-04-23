@@ -1,18 +1,26 @@
 # [LevelDebug = -4 LevelInfo = 0 LevelWarn = 4 LevelError = 8]
-# mb Env? [ "local" "dev" "prod" ]
 Logger:
   Level: -4
 
 GRPCServer:
-  Address: "0.0.0.0:8090"
+  Address: "0.0.0.0:8091"
   MaxRecvMsgSize: 8000000
   MaxSendMsgSize: 32000000
 
 RESTServer:
-  ListenPort: "8080"
+  ListenPort: "8081"
   ReadTimeout: 10s
   WriteTimeout: 30s
   ShutdownTimeout: 5s
   ReadHeaderTimeout: 500ms
   IdleTimeout: 1s
   MaxHeaderBytes: 1024
+
+AuctionService:
+  Address: "localhost:9090"
+
+Kafka:
+  Brokers:
+    - "localhost:9092"
+  Topic: "auction-events"
+  GroupID: "api-gateway"

@@ -1,6 +1,30 @@
 version: "3.9"
 
 services:
+  apigateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: apigateway
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+      - "9091:9091"
+    volumes:
+      - ./config.yaml:/config.yaml:ro
+      - ./credentials.yaml:/credentials.yaml:ro
+      - apigateway_logs:/logs
+    environment:
+      APIGATEWAY_POSTGRES_HOST: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
   postgres:
     image: postgres:16-alpine
     container_name: apigateway_postgres
@@ -10,7 +34,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: postgres
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,3 +45,4 @@ services:
 
 volumes:
   postgres_data:
+  apigateway_logs:

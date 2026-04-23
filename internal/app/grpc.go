@@ -25,11 +25,6 @@ func NewGrpc(ctx context.Context, dep GrpcDep) (*Grpc, error) {
 		return nil, errorspkg.NewValidationError("NewGrpc", err)
 	}
 
-	_, err := grpc.NewApigatewayService()
-	if err != nil {
-		return nil, err
-	}
-
 	grpcServer, err := grpc.NewServer(ctx, grpc.ServerDep{
 		Config:  dep.Config,
 		Logger:  dep.Logger,

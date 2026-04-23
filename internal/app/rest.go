@@ -5,6 +5,7 @@ import (
 	"apigateway/internal/api/rest"
 	"apigateway/internal/api/rest/handlers"
 	"apigateway/internal/api/rest/middlewares"
+	"apigateway/internal/integrations/wsmanager"
 	"apigateway/internal/metrics"
 	"apigateway/internal/pkg/applogger"
 	"apigateway/internal/pkg/errorspkg"
@@ -19,6 +20,7 @@ type RestDep struct {
 	Logger      applogger.IAppLogger `validate:"required"`
 	Metrics     metrics.IMetrics     `validate:"required"`
 	JWTSecret   string               `validate:"required"`
+	WSManager   *wsmanager.WSManager `validate:"required"`
 }
 
 type Rest struct {
@@ -30,7 +32,6 @@ func NewRest(_ context.Context, dep RestDep) (*Rest, error) {
 		return nil, errorspkg.NewValidationError("NewRest", err)
 	}
 
-	// инициализация универсального обработчика ответов клиенту
 	responder, err := handlers.NewResponder(handlers.ResponderDep{
 		Logger:  dep.Logger,
 		Metrics: dep.Metrics,
@@ -39,7 +40,6 @@ func NewRest(_ context.Context, dep RestDep) (*Rest, error) {
 		return nil, err
 	}
 
-	// инициализация всех middlewares
 	requestID, err := middlewares.NewRequestIDMiddleware()
 	if err != nil {
 		return nil, err
@@ -65,7 +65,6 @@ func NewRest(_ context.Context, dep RestDep) (*Rest, error) {
 		return nil, err
 	}
 
-	// инициализация всех handlers
 	bases, err := handlers.NewBaseHandlers(handlers.Dep{
 		AppVersion: dep.Version,
 		Logger:     dep.Logger,
@@ -85,6 +84,8 @@ func NewRest(_ context.Context, dep RestDep) (*Rest, error) {
 	auctionHandlers, err := handlers.NewAuctionHandlers(handlers.AuctionHandlersDep{
 		Responder:   responder,
 		AuctionCtrl: dep.Controllers.Auction,
+		WSManager:   dep.WSManager,
+		JWTSecret:   dep.JWTSecret,
 	})
 	if err != nil {
 		return nil, err

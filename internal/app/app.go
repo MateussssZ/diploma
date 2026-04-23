@@ -3,6 +3,8 @@ package app
 import (
 	"apigateway/config"
 	"apigateway/internal/clients"
+	"apigateway/internal/integrations/kafka"
+	"apigateway/internal/integrations/wsmanager"
 	"apigateway/internal/metrics"
 	"apigateway/internal/pkg/applogger"
 	"apigateway/internal/pkg/errorspkg"
@@ -22,8 +24,10 @@ type Dep struct {
 }
 
 type App struct {
-	grpc *Grpc
-	rest *Rest
+	grpc          *Grpc
+	rest          *Rest
+	wsManager     *wsmanager.WSManager
+	kafkaConsumer *kafka.Consumer
 }
 
 func NewApp(ctx context.Context, dep Dep) (*App, error) {
@@ -40,13 +44,6 @@ func NewApp(ctx context.Context, dep Dep) (*App, error) {
 		return nil, err
 	}
 
-	/* // Интерфейсы интеграций, например с s3
-	integrations, err := NewIntegrations(IntegrationsDep{})
-	if err != nil {
-		return nil, err
-	}
-	*/
-
 	usecases, err := NewUsecases(UsecasesDep{
 		Repo: registries,
 		AuctionClient: func() *clients.AuctionServiceClient {
@@ -54,6 +51,16 @@ func NewApp(ctx context.Context, dep Dep) (*App, error) {
 			return clients.NewAuctionServiceClient(conn)
 		}(),
 		JWTSecret: dep.Credentials.Auth.JWTSecret,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	integrations, err := NewIntegrations(IntegrationsDep{
+		AuctionActions: usecases.Auction,
+		Metrics:        promMetrics,
+		Logger:         dep.Logger,
+		KafkaCfg:       dep.Config.Kafka,
 	})
 	if err != nil {
 		return nil, err
@@ -82,14 +89,17 @@ func NewApp(ctx context.Context, dep Dep) (*App, error) {
 		Logger:      dep.Logger,
 		Metrics:     promMetrics,
 		JWTSecret:   dep.Credentials.Auth.JWTSecret,
+		WSManager:   integrations.WSManager,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &App{
-		grpc: grpcSrv,
-		rest: restSrv,
+		grpc:          grpcSrv,
+		rest:          restSrv,
+		wsManager:     integrations.WSManager,
+		kafkaConsumer: integrations.KafkaConsumer,
 	}, nil
 }
 
@@ -100,5 +110,14 @@ func (a *App) Start(ctx context.Context, eg *errgroup.Group) {
 
 	eg.Go(func() error {
 		return a.rest.Start(ctx)
+	})
+
+	eg.Go(func() error {
+		a.wsManager.Start(ctx)
+		return nil
+	})
+
+	eg.Go(func() error {
+		return a.kafkaConsumer.Start(ctx)
 	})
 }

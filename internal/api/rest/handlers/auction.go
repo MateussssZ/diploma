@@ -1,17 +1,32 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 
 	"apigateway/internal/api/rest/handlers/models"
 	"apigateway/internal/controllers"
 	"apigateway/internal/pkg/errorspkg"
 	"apigateway/internal/pkg/validate"
+	"apigateway/internal/utils"
 )
+
+// IWSManager is the interface implemented by wsmanager.WSManager.
+type IWSManager interface {
+	HandleConnection(ctx context.Context, conn *websocket.Conn, userID string)
+}
+
+var wsUpgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true },
+}
 
 type IAuctionHandlers interface {
 	GetAuctions(w http.ResponseWriter, r *http.Request)
@@ -19,16 +34,21 @@ type IAuctionHandlers interface {
 	GetUserAuctions(w http.ResponseWriter, r *http.Request)
 	GetSubscribedAuctions(w http.ResponseWriter, r *http.Request)
 	CreateAuction(w http.ResponseWriter, r *http.Request)
+	ConnectAuction(w http.ResponseWriter, r *http.Request)
 }
 
 type AuctionHandlersDep struct {
 	Responder   IResponder               `validate:"required"`
 	AuctionCtrl controllers.IAuctionCtrl `validate:"required"`
+	WSManager   IWSManager               `validate:"required"`
+	JWTSecret   string                   `validate:"required"`
 }
 
 type AuctionHandlers struct {
 	responder   IResponder
 	auctionCtrl controllers.IAuctionCtrl
+	wsManager   IWSManager
+	jwtSecret   []byte
 }
 
 func NewAuctionHandlers(dep AuctionHandlersDep) (*AuctionHandlers, error) {
@@ -38,6 +58,8 @@ func NewAuctionHandlers(dep AuctionHandlersDep) (*AuctionHandlers, error) {
 	return &AuctionHandlers{
 		responder:   dep.Responder,
 		auctionCtrl: dep.AuctionCtrl,
+		wsManager:   dep.WSManager,
+		jwtSecret:   []byte(dep.JWTSecret),
 	}, nil
 }
 
@@ -80,7 +102,7 @@ func (h *AuctionHandlers) GetAuctionByID(w http.ResponseWriter, r *http.Request)
 func (h *AuctionHandlers) GetUserAuctions(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	userID, ok := ctx.Value("user_id").(string)
+	userID, ok := ctx.Value(utils.CtxUserID).(string)
 	if !ok || userID == "" {
 		h.responder.WriteError(ctx, w, errorspkg.NewUnitIsMissedError("user_id"), WithStatusCode(http.StatusUnauthorized))
 		return
@@ -98,7 +120,7 @@ func (h *AuctionHandlers) GetUserAuctions(w http.ResponseWriter, r *http.Request
 func (h *AuctionHandlers) GetSubscribedAuctions(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	userID, ok := ctx.Value("user_id").(string)
+	userID, ok := ctx.Value(utils.CtxUserID).(string)
 	if !ok || userID == "" {
 		h.responder.WriteError(ctx, w, errorspkg.NewUnitIsMissedError("user_id"), WithStatusCode(http.StatusUnauthorized))
 		return
@@ -122,7 +144,7 @@ func (h *AuctionHandlers) CreateAuction(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	userID, ok := ctx.Value("user_id").(string)
+	userID, ok := ctx.Value(utils.CtxUserID).(string)
 	if !ok || userID == "" {
 		h.responder.WriteError(ctx, w, errorspkg.NewUnitIsMissedError("user_id"), WithStatusCode(http.StatusUnauthorized))
 		return
@@ -135,4 +157,48 @@ func (h *AuctionHandlers) CreateAuction(w http.ResponseWriter, r *http.Request) 
 	}
 
 	h.responder.WriteJSON(ctx, w, models.CreateAuctionResponse{AuctionID: auctionID})
+}
+
+// ConnectAuction upgrades the HTTP connection to WebSocket and hands it off to WSManager.
+// Auth token is passed via the ?token= query parameter (standard practice for browser WS clients).
+func (h *AuctionHandlers) ConnectAuction(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	tokenStr := r.URL.Query().Get("token")
+	if tokenStr == "" {
+		http.Error(w, "missing token query parameter", http.StatusUnauthorized)
+		return
+	}
+
+	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
+		return h.jwtSecret, nil
+	})
+	if err != nil || !token.Valid {
+		http.Error(w, "invalid or expired token", http.StatusUnauthorized)
+		return
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		http.Error(w, "invalid token claims", http.StatusUnauthorized)
+		return
+	}
+
+	userID, err := claims.GetSubject()
+	if err != nil || userID == "" {
+		http.Error(w, "invalid token subject", http.StatusUnauthorized)
+		return
+	}
+
+	ws, err := wsUpgrader.Upgrade(w, r, nil)
+	if err != nil {
+		h.responder.WriteError(ctx, w, fmt.Errorf("ws upgrade: %w", err))
+		return
+	}
+	defer ws.Close()
+
+	h.wsManager.HandleConnection(ctx, ws, userID)
 }

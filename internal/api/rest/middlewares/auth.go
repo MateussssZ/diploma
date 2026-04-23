@@ -7,11 +7,9 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
+
+	"apigateway/internal/utils"
 )
-
-type contextKey string
-
-const UserIDContextKey contextKey = "user_id"
 
 type AuthMiddleware struct {
 	jwtSecret []byte
@@ -62,7 +60,7 @@ func (m *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), UserIDContextKey, sub)
+		ctx := context.WithValue(r.Context(), utils.CtxUserID, sub)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

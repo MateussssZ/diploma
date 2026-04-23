@@ -1,14 +1,15 @@
 package middlewares
 
 import (
-	"fmt"
-	"github.com/gorilla/mux"
 	"apigateway/internal/metrics"
 	"apigateway/internal/pkg/applogger"
 	"apigateway/internal/pkg/errorspkg"
 	"apigateway/internal/pkg/validate"
+	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 type MetricsMiddlewareDep struct {
@@ -42,19 +43,37 @@ func (mw *MetricsMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		start := time.Now()
-
-		mw.metrics.OperationsTotalInc()
-
 		route := mux.CurrentRoute(r)
 		path, err := route.GetPathTemplate()
 		if err != nil {
 			mw.logger.Error(r.Context(), fmt.Errorf("route.GetPathTemplate - error: %w", err))
+			path = r.URL.Path
 		}
 
-		next.ServeHTTP(w, r)
+		mw.metrics.OperationsTotalInc()
+
+		rw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
+		start := time.Now()
+
+		next.ServeHTTP(rw, r)
 
 		duration := time.Since(start).Seconds()
 		mw.metrics.HTTPServerRequestDurationInc(path, r.Method, duration)
+
+		if rw.status >= 400 {
+			mw.metrics.HTTPServerRequestsErrorsTotalInc(path, r.Method)
+			mw.metrics.OperationsErrorsTotalInc()
+		}
 	})
+}
+
+// statusWriter wraps http.ResponseWriter to capture the written status code.
+type statusWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (sw *statusWriter) WriteHeader(code int) {
+	sw.status = code
+	sw.ResponseWriter.WriteHeader(code)
 }

@@ -1,18 +1,25 @@
 package app
 
 import (
-	// "apigateway/internal/integrations"
+	"apigateway/config"
+	"apigateway/internal/integrations/kafka"
+	"apigateway/internal/integrations/wsmanager"
+	"apigateway/internal/metrics"
+	"apigateway/internal/pkg/applogger"
 	"apigateway/internal/pkg/errorspkg"
 	"apigateway/internal/pkg/validate"
 )
 
 type IntegrationsDep struct {
-	// креды, конфиги, прочее
+	AuctionActions wsmanager.IAuctionActions `validate:"required"`
+	Metrics        metrics.IMetrics          `validate:"required"`
+	Logger         applogger.IAppLogger      `validate:"required"`
+	KafkaCfg       config.Kafka
 }
 
 type Integrations struct {
-	// интерфейсы взаимодействия с интеграциями
-	// S3 integrations.IS3
+	WSManager     *wsmanager.WSManager
+	KafkaConsumer *kafka.Consumer
 }
 
 func NewIntegrations(dep IntegrationsDep) (*Integrations, error) {
@@ -20,10 +27,11 @@ func NewIntegrations(dep IntegrationsDep) (*Integrations, error) {
 		return nil, errorspkg.NewValidationError("NewIntegrations", err)
 	}
 
-	// инициализация интеграций
-	// integrations.NewS3(integrations.S3Dep) -> (integrations.S3, err)
+	wsMgr := wsmanager.NewWSManager(dep.AuctionActions, dep.Metrics, dep.Logger)
+	consumer := kafka.NewConsumer(dep.KafkaCfg, wsMgr, dep.Metrics, dep.Logger)
 
 	return &Integrations{
-		// S3: s3,
+		WSManager:     wsMgr,
+		KafkaConsumer: consumer,
 	}, nil
 }

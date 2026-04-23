@@ -15,7 +15,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const version = "v0.0.0"
+const version = "v1.0.0"
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -34,7 +34,7 @@ func main() {
 	}
 
 	logger := applogger.NewAppLogger(conf.Logger.Level)
-	logger.Info(ctx, ">>>>>>>> Version: ", "version", version)
+	logger.Info(ctx, "starting", "version", version)
 
 	application, err := app.NewApp(ctx, app.Dep{
 		Version:     version,
@@ -43,22 +43,22 @@ func main() {
 		Logger:      logger,
 	})
 	if err != nil {
-		logger.Error(ctx, err, "error", "application initialization failed")
+		logger.Error(ctx, err)
 		return
 	}
 
 	eg := &errgroup.Group{}
 	application.Start(ctx, eg)
-	logger.Info(ctx, "Application has been started!")
+	logger.Info(ctx, "application started")
 
 	go func() {
 		<-ctx.Done()
-		logger.Info(ctx, "Please wait, services are stopping...Chill around 30 seconds")
+		logger.Info(ctx, "shutting down")
 	}()
 
 	if err := eg.Wait(); err != nil && !errors.Is(err, context.Canceled) {
-		logger.Error(ctx, err, "error", "application start failed")
+		logger.Error(ctx, err)
 	}
 
-	logger.Info(ctx, "Application is stopped correctly. The force will be with you")
+	logger.Info(ctx, "application stopped")
 }

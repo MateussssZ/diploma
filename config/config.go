@@ -38,11 +38,19 @@ type Config struct {
 	GRPCServer     GRPCServer `mapstructure:"GRPCServer" validate:"required"`
 	RESTServer     RESTServer `mapstructure:"RESTServer" validate:"required"`
 	AuctionService GRPCClient `mapstructure:"AuctionService" validate:"required"`
+	Kafka          Kafka      `mapstructure:"Kafka" validate:"required"`
 }
 
-// GRPCClient адрес внешнего gRPC-сервиса
+// GRPCClient is the address of an external gRPC service.
 type GRPCClient struct {
 	Address string `mapstructure:"Address" validate:"required,min=1"`
+}
+
+// Kafka holds Kafka consumer configuration.
+type Kafka struct {
+	Brokers []string `mapstructure:"Brokers" validate:"required"`
+	Topic   string   `mapstructure:"Topic" validate:"required"`
+	GroupID string   `mapstructure:"GroupID" validate:"required"`
 }
 
 func NewConfig() (*Config, error) {

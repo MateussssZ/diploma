@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -146,7 +147,7 @@ func (u *UserUsecase) Refresh(ctx context.Context, refreshToken string) (*models
 
 func (u *UserUsecase) generateToken(userID int64, expiry time.Time) (string, error) {
 	claims := jwt.MapClaims{
-		"sub": userID,
+		"sub": strconv.FormatInt(userID, 10),
 		"exp": expiry.Unix(),
 		"iat": time.Now().Unix(),
 	}
