@@ -48,6 +48,7 @@ func NewApp(ctx context.Context, dep Dep) (*App, error) {
 		Repo: registries,
 		AuctionClient: func() *clients.AuctionServiceClient {
 			conn, _ := grpc.NewClient(dep.Config.AuctionService.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			conn.Connect()
 			return clients.NewAuctionServiceClient(conn)
 		}(),
 		JWTSecret: dep.Credentials.Auth.JWTSecret,

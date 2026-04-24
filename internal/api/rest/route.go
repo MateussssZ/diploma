@@ -51,10 +51,10 @@ func NewRoute(dep RouteDep) (http.Handler, error) {
 	auction := r.PathPrefix("/auctions").Subrouter()
 	auction.Use(dep.AuthMiddleware)
 	auction.HandleFunc("", dep.AuctionHandlers.GetAuctions).Methods(http.MethodGet)
-	auction.HandleFunc("/{auction_id}", dep.AuctionHandlers.GetAuctionByID).Methods(http.MethodGet)
+	auction.HandleFunc("", dep.AuctionHandlers.CreateAuction).Methods(http.MethodPost)
 	auction.HandleFunc("/user", dep.AuctionHandlers.GetUserAuctions).Methods(http.MethodGet)
 	auction.HandleFunc("/subscribed", dep.AuctionHandlers.GetSubscribedAuctions).Methods(http.MethodGet)
-	auction.HandleFunc("", dep.AuctionHandlers.CreateAuction).Methods(http.MethodPost)
+	auction.HandleFunc("/{auction_id}", dep.AuctionHandlers.GetAuctionByID).Methods(http.MethodGet)
 
 	// WebSocket endpoint (auth через query param ?token=...)
 	ws := r.PathPrefix("/ws").Subrouter()

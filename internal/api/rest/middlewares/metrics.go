@@ -7,6 +7,7 @@ import (
 	"apigateway/internal/pkg/validate"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -39,6 +40,12 @@ func (mw *MetricsMiddleware) Middleware(next http.Handler) http.Handler {
 		mw.logger.Debug(r.Context(), "http request started")
 
 		if r.URL.Path == "/metrics" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// WebSocket upgrade requires http.Hijacker — skip wrapping for WS routes
+		if strings.HasPrefix(r.URL.Path, "/ws") {
 			next.ServeHTTP(w, r)
 			return
 		}

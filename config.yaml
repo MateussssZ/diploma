@@ -21,6 +21,6 @@ AuctionService:
 
 Kafka:
   Brokers:
-    - "localhost:9092"
+    - "kafka:9092" # important to add string "127.0.0.1 kafka" to your hosts file
   Topic: "auction-events"
   GroupID: "api-gateway"

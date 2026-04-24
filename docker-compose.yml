@@ -19,8 +19,13 @@ services:
       - apigateway_logs:/logs
     environment:
       APIGATEWAY_POSTGRES_HOST: postgres
+      APIGATEWAY_KAFKA_BROKERS: "kafka:9092"
+      APIGATEWAY_AUCTIONSERVICE_ADDRESS: "auction-service:9090"
+    networks:
+      - default
+      - auctionservice_default
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -42,6 +47,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+networks:
+  default: {}
+  auctionservice_default:
+    external: true
 
 volumes:
   postgres_data:
