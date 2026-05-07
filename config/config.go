@@ -34,16 +34,22 @@ type (
 )
 
 type Config struct {
-	Logger         Logger     `mapstructure:"Logger" validate:"required"`
-	GRPCServer     GRPCServer `mapstructure:"GRPCServer" validate:"required"`
-	RESTServer     RESTServer `mapstructure:"RESTServer" validate:"required"`
-	AuctionService GRPCClient `mapstructure:"AuctionService" validate:"required"`
-	Kafka          Kafka      `mapstructure:"Kafka" validate:"required"`
+	Logger         Logger         `mapstructure:"Logger" validate:"required"`
+	GRPCServer     GRPCServer     `mapstructure:"GRPCServer" validate:"required"`
+	RESTServer     RESTServer     `mapstructure:"RESTServer" validate:"required"`
+	AuctionService GRPCClient     `mapstructure:"AuctionService" validate:"required"`
+	AuthService    AuthServiceCfg `mapstructure:"AuthService" validate:"required"`
+	Kafka          Kafka          `mapstructure:"Kafka" validate:"required"`
 }
 
-// GRPCClient is the address of an external gRPC service.
+// GRPCClient is the address of an external gRPC service (TCP).
 type GRPCClient struct {
 	Address string `mapstructure:"Address" validate:"required,min=1"`
+}
+
+// AuthServiceCfg holds the unix-socket path for the AuthService.
+type AuthServiceCfg struct {
+	SocketPath string `mapstructure:"SocketPath" validate:"required,min=1"`
 }
 
 // Kafka holds Kafka consumer configuration.

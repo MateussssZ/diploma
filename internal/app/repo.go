@@ -1,39 +1,18 @@
 package app
 
 import (
-	"apigateway/config"
 	"apigateway/internal/pkg/errorspkg"
 	"apigateway/internal/pkg/validate"
-	"apigateway/internal/repo"
-	"apigateway/internal/repo/postgres"
-	"context"
 )
 
-type RepoDep struct {
-	PostgresCfg config.IDSNBuilder `validate:"required"`
-}
+// Registries is kept as a placeholder in case direct DB access is needed in future.
+type RepoDep struct{}
 
-type PostgresRegistry struct {
-	User repo.IUserRepo
-}
+type Registries struct{}
 
-type Registries struct {
-	Postgres PostgresRegistry
-}
-
-func NewRepo(ctx context.Context, dep RepoDep) (*Registries, error) {
-	if err := validate.Struct(dep); err != nil {
+func NewRepo(_ RepoDep) (*Registries, error) {
+	if err := validate.Struct(struct{}{}); err != nil {
 		return nil, errorspkg.NewValidationError("NewRepo", err)
 	}
-
-	postgresConn, err := postgres.New(ctx, dep.PostgresCfg.ToDSN())
-	if err != nil {
-		return nil, err
-	}
-
-	return &Registries{
-		Postgres: PostgresRegistry{
-			User: postgres.NewUserRepo(postgresConn),
-		},
-	}, nil
+	return &Registries{}, nil
 }

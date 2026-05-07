@@ -1,0 +1,19 @@
+Logger:
+  Level: -4
+
+GRPCServer:
+  SocketPath: "C:/go/src/templateservice/authservice.sock"
+  MaxRecvMsgSize: 8000000
+  MaxSendMsgSize: 8000000
+
+Postgres:
+  User: "authuser"
+  Password: "authpass"
+  Host: "localhost"
+  Port: 5433
+  Database: "authdb"
+
+Auth:
+  JWTSecret: "change-me-in-production-use-a-long-random-secret"
+  AccessTTL: 15m
+  RefreshTTL: 168h

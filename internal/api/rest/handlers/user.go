@@ -8,6 +8,9 @@ import (
 	"apigateway/internal/controllers"
 	"apigateway/internal/pkg/errorspkg"
 	"apigateway/internal/pkg/validate"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type IUserHandlers interface {
@@ -37,6 +40,26 @@ func NewUserHandlers(dep UserHandlersDep) (*UserHandlers, error) {
 	}, nil
 }
 
+// grpcStatusCode converts a gRPC error into a WithStatusCode option.
+// Unauthenticated → 401, NotFound → 404, AlreadyExists → 409, etc.
+func grpcStatusCode(err error) WriteErrorOption {
+	if st, ok := status.FromError(err); ok {
+		switch st.Code() {
+		case codes.Unauthenticated:
+			return WithStatusCode(http.StatusUnauthorized)
+		case codes.NotFound:
+			return WithStatusCode(http.StatusNotFound)
+		case codes.AlreadyExists:
+			return WithStatusCode(http.StatusConflict)
+		case codes.InvalidArgument:
+			return WithStatusCode(http.StatusBadRequest)
+		case codes.PermissionDenied:
+			return WithStatusCode(http.StatusForbidden)
+		}
+	}
+	return WithStatusCode(http.StatusInternalServerError)
+}
+
 func (h *UserHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -47,7 +70,7 @@ func (h *UserHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.userCtrl.Register(ctx, data); err != nil {
-		h.responder.WriteError(ctx, w, err)
+		h.responder.WriteError(ctx, w, err, grpcStatusCode(err))
 		return
 	}
 
@@ -65,7 +88,7 @@ func (h *UserHandlers) Login(w http.ResponseWriter, r *http.Request) {
 
 	tokens, err := h.userCtrl.Login(ctx, data)
 	if err != nil {
-		h.responder.WriteError(ctx, w, err)
+		h.responder.WriteError(ctx, w, err, grpcStatusCode(err))
 		return
 	}
 
@@ -82,7 +105,7 @@ func (h *UserHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.userCtrl.Logout(ctx, data.RefreshToken); err != nil {
-		h.responder.WriteError(ctx, w, err)
+		h.responder.WriteError(ctx, w, err, grpcStatusCode(err))
 		return
 	}
 
@@ -100,7 +123,7 @@ func (h *UserHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
 
 	tokens, err := h.userCtrl.Refresh(ctx, data.RefreshToken)
 	if err != nil {
-		h.responder.WriteError(ctx, w, err)
+		h.responder.WriteError(ctx, w, err, grpcStatusCode(err))
 		return
 	}
 

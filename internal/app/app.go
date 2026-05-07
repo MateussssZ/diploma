@@ -10,6 +10,8 @@ import (
 	"apigateway/internal/pkg/errorspkg"
 	"apigateway/internal/pkg/validate"
 	"context"
+	"fmt"
+	"net"
 
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -37,25 +39,28 @@ func NewApp(ctx context.Context, dep Dep) (*App, error) {
 
 	promMetrics := metrics.NewPrometheus()
 
-	registries, err := NewRepo(ctx, RepoDep{
-		PostgresCfg: dep.Credentials.Postgres,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	usecases, err := NewUsecases(UsecasesDep{
-		Repo: registries,
 		AuctionClient: func() *clients.AuctionServiceClient {
 			conn, _ := grpc.NewClient(dep.Config.AuctionService.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 			conn.Connect()
 			return clients.NewAuctionServiceClient(conn)
 		}(),
-		JWTSecret: dep.Credentials.Auth.JWTSecret,
 	})
 	if err != nil {
 		return nil, err
 	}
+
+	authConn, err := grpc.NewClient(
+		"passthrough:///authservice",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
+			return (&net.Dialer{}).DialContext(ctx, "unix", dep.Config.AuthService.SocketPath)
+		}),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("dial AuthService unix socket: %w", err)
+	}
+	authClient := clients.NewAuthServiceClient(authConn)
 
 	integrations, err := NewIntegrations(IntegrationsDep{
 		AuctionActions: usecases.Auction,
@@ -68,7 +73,8 @@ func NewApp(ctx context.Context, dep Dep) (*App, error) {
 	}
 
 	controllers, err := NewControllers(ControllersDep{
-		Usecases: usecases,
+		Usecases:   usecases,
+		AuthClient: authClient,
 	})
 	if err != nil {
 		return nil, err

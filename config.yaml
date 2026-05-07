@@ -19,6 +19,9 @@ RESTServer:
 AuctionService:
   Address: "localhost:9090"
 
+AuthService:
+  SocketPath: "C:/go/src/templateservice/authservice.sock"
+
 Kafka:
   Brokers:
     - "kafka:9092" # important to add string "127.0.0.1 kafka" to your hosts file

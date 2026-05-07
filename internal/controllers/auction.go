@@ -19,12 +19,10 @@ type IAuctionCtrl interface {
 
 type AuctionCtrlDep struct {
 	AuctionUsecase usecases.IAuctionUsecase `validate:"required"`
-	UserUsecase    usecases.IUserUsecase    `validate:"required"`
 }
 
 type AuctionCtrl struct {
 	auctionUsecase usecases.IAuctionUsecase
-	userUsecase    usecases.IUserUsecase
 }
 
 func NewAuctionCtrl(dep AuctionCtrlDep) (*AuctionCtrl, error) {
@@ -34,7 +32,6 @@ func NewAuctionCtrl(dep AuctionCtrlDep) (*AuctionCtrl, error) {
 
 	return &AuctionCtrl{
 		auctionUsecase: dep.AuctionUsecase,
-		userUsecase:    dep.UserUsecase,
 	}, nil
 }
 
