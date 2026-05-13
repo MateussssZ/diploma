@@ -5,6 +5,7 @@ import (
 	"apigateway/internal/api/rest"
 	"apigateway/internal/api/rest/handlers"
 	"apigateway/internal/api/rest/middlewares"
+	"apigateway/internal/integrations/cache"
 	"apigateway/internal/integrations/wsmanager"
 	"apigateway/internal/metrics"
 	"apigateway/internal/pkg/applogger"
@@ -14,13 +15,14 @@ import (
 )
 
 type RestDep struct {
-	Version     string               `validate:"required,min=6"`
-	Controllers *Controllers         `validate:"required"`
-	Config      *config.RESTServer   `validate:"required"`
-	Logger      applogger.IAppLogger `validate:"required"`
-	Metrics     metrics.IMetrics     `validate:"required"`
-	JWTSecret   string               `validate:"required"`
-	WSManager   *wsmanager.WSManager `validate:"required"`
+	Version      string               `validate:"required,min=6"`
+	Controllers  *Controllers         `validate:"required"`
+	Config       *config.RESTServer   `validate:"required"`
+	Logger       applogger.IAppLogger `validate:"required"`
+	Metrics      metrics.IMetrics     `validate:"required"`
+	JWTSecret    string               `validate:"required"`
+	WSManager    *wsmanager.WSManager `validate:"required"`
+	CacheManager *cache.CacheManager  `validate:"required"`
 }
 
 type Rest struct {
@@ -82,10 +84,11 @@ func NewRest(_ context.Context, dep RestDep) (*Rest, error) {
 	}
 
 	auctionHandlers, err := handlers.NewAuctionHandlers(handlers.AuctionHandlersDep{
-		Responder:   responder,
-		AuctionCtrl: dep.Controllers.Auction,
-		WSManager:   dep.WSManager,
-		JWTSecret:   dep.JWTSecret,
+		Responder:    responder,
+		AuctionCtrl:  dep.Controllers.Auction,
+		WSManager:    dep.WSManager,
+		JWTSecret:    dep.JWTSecret,
+		CacheManager: dep.CacheManager,
 	})
 	if err != nil {
 		return nil, err

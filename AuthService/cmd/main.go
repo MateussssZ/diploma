@@ -11,6 +11,8 @@ import (
 	authpb "authservice/api/auth"
 	"authservice/config"
 	"authservice/internal/repo/postgres"
+	"authservice/internal/rest"
+	"authservice/internal/rest/handlers"
 	"authservice/internal/server"
 	"authservice/internal/usecases"
 
@@ -91,7 +93,27 @@ func main() {
 		}
 	}()
 
+	responder := handlers.NewResponder(logger)
+	userHandlers := handlers.NewUserHandlers(handlers.UserHandlersDep{
+		Responder: responder,
+		Usecase:   userUsecase,
+	})
+	router := rest.NewRouter(rest.RouterDep{
+		Responder:   responder,
+		UserHandler: userHandlers,
+	})
+	httpSrv := rest.NewServer(rest.Options{
+		Address: cfg.HTTPServer.Address,
+	}, router, logger)
+
+	go func() {
+		if err := httpSrv.Start(ctx); err != nil {
+			logger.Error("http server error", "err", err)
+		}
+	}()
+
 	<-ctx.Done()
 	logger.Info("shutting down AuthService")
 	grpcServer.GracefulStop()
+	_ = httpSrv.Stop(context.Background())
 }

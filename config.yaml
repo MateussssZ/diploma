@@ -22,6 +22,16 @@ AuctionService:
 AuthService:
   SocketPath: "C:/go/src/templateservice/authservice.sock"
 
+Redis:
+  Address: "localhost:6379"
+  DB: 0
+  Password: ""
+  MaxRetries: 3
+  PoolSize: 10
+
+CacheConfig:
+  AuctionDetailTTL: 10m
+
 Kafka:
   Brokers:
     - "kafka:9092" # important to add string "127.0.0.1 kafka" to your hosts file

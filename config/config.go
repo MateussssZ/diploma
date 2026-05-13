@@ -39,6 +39,8 @@ type Config struct {
 	RESTServer     RESTServer     `mapstructure:"RESTServer" validate:"required"`
 	AuctionService GRPCClient     `mapstructure:"AuctionService" validate:"required"`
 	AuthService    AuthServiceCfg `mapstructure:"AuthService" validate:"required"`
+	Redis          RedisConfig    `mapstructure:"Redis" validate:"required"`
+	CacheConfig    CacheConfig    `mapstructure:"CacheConfig" validate:"required"`
 	Kafka          Kafka          `mapstructure:"Kafka" validate:"required"`
 }
 
@@ -57,6 +59,20 @@ type Kafka struct {
 	Brokers []string `mapstructure:"Brokers" validate:"required"`
 	Topic   string   `mapstructure:"Topic" validate:"required"`
 	GroupID string   `mapstructure:"GroupID" validate:"required"`
+}
+
+// RedisConfig holds Redis configuration.
+type RedisConfig struct {
+	Address    string `mapstructure:"Address" validate:"required,min=1"`
+	DB         int    `mapstructure:"DB" validate:"gte=0,lte=15"`
+	Password   string `mapstructure:"Password"`
+	MaxRetries int    `mapstructure:"MaxRetries" validate:"gte=0"`
+	PoolSize   int    `mapstructure:"PoolSize" validate:"gt=0"`
+}
+
+// CacheConfig holds cache TTL configuration.
+type CacheConfig struct {
+	AuctionDetailTTL time.Duration `mapstructure:"AuctionDetailTTL" validate:"gt=0"`
 }
 
 func NewConfig() (*Config, error) {

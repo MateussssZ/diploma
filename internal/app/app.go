@@ -3,6 +3,7 @@ package app
 import (
 	"apigateway/config"
 	"apigateway/internal/clients"
+	"apigateway/internal/integrations/cache"
 	"apigateway/internal/integrations/kafka"
 	"apigateway/internal/integrations/wsmanager"
 	"apigateway/internal/metrics"
@@ -30,6 +31,8 @@ type App struct {
 	rest          *Rest
 	wsManager     *wsmanager.WSManager
 	kafkaConsumer *kafka.Consumer
+	cacheManager  *cache.CacheManager
+	redisClient   *cache.RedisClient
 }
 
 func NewApp(ctx context.Context, dep Dep) (*App, error) {
@@ -38,6 +41,27 @@ func NewApp(ctx context.Context, dep Dep) (*App, error) {
 	}
 
 	promMetrics := metrics.NewPrometheus()
+
+	redisClient, err := cache.NewRedisClient(
+		dep.Config.Redis.Address,
+		dep.Config.Redis.DB,
+		dep.Config.Redis.Password,
+		dep.Config.Redis.MaxRetries,
+	)
+	if err != nil {
+		dep.Logger.Error(context.Background(),
+			fmt.Errorf("failed to connect to Redis, cache disabled: %w", err))
+		// Cache is optional - continue without it
+		redisClient = nil
+	}
+
+	cacheManager := cache.NewCacheManager(
+		redisClient,
+		dep.Logger,
+		cache.CacheTTLs{
+			AuctionDetailTTL: dep.Config.CacheConfig.AuctionDetailTTL,
+		},
+	)
 
 	usecases, err := NewUsecases(UsecasesDep{
 		AuctionClient: func() *clients.AuctionServiceClient {
@@ -67,6 +91,7 @@ func NewApp(ctx context.Context, dep Dep) (*App, error) {
 		Metrics:        promMetrics,
 		Logger:         dep.Logger,
 		KafkaCfg:       dep.Config.Kafka,
+		CacheManager:   cacheManager,
 	})
 	if err != nil {
 		return nil, err
@@ -90,13 +115,14 @@ func NewApp(ctx context.Context, dep Dep) (*App, error) {
 	}
 
 	restSrv, err := NewRest(ctx, RestDep{
-		Version:     dep.Version,
-		Controllers: controllers,
-		Config:      &dep.Config.RESTServer,
-		Logger:      dep.Logger,
-		Metrics:     promMetrics,
-		JWTSecret:   dep.Credentials.Auth.JWTSecret,
-		WSManager:   integrations.WSManager,
+		Version:      dep.Version,
+		Controllers:  controllers,
+		Config:       &dep.Config.RESTServer,
+		Logger:       dep.Logger,
+		Metrics:      promMetrics,
+		JWTSecret:    dep.Credentials.Auth.JWTSecret,
+		WSManager:    integrations.WSManager,
+		CacheManager: integrations.CacheManager,
 	})
 	if err != nil {
 		return nil, err

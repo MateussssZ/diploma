@@ -2,6 +2,7 @@ package app
 
 import (
 	"apigateway/config"
+	"apigateway/internal/integrations/cache"
 	"apigateway/internal/integrations/kafka"
 	"apigateway/internal/integrations/wsmanager"
 	"apigateway/internal/metrics"
@@ -15,11 +16,13 @@ type IntegrationsDep struct {
 	Metrics        metrics.IMetrics          `validate:"required"`
 	Logger         applogger.IAppLogger      `validate:"required"`
 	KafkaCfg       config.Kafka
+	CacheManager   *cache.CacheManager `validate:"required"`
 }
 
 type Integrations struct {
 	WSManager     *wsmanager.WSManager
 	KafkaConsumer *kafka.Consumer
+	CacheManager  *cache.CacheManager
 }
 
 func NewIntegrations(dep IntegrationsDep) (*Integrations, error) {
@@ -28,10 +31,11 @@ func NewIntegrations(dep IntegrationsDep) (*Integrations, error) {
 	}
 
 	wsMgr := wsmanager.NewWSManager(dep.AuctionActions, dep.Metrics, dep.Logger)
-	consumer := kafka.NewConsumer(dep.KafkaCfg, wsMgr, dep.Metrics, dep.Logger)
+	consumer := kafka.NewConsumer(dep.KafkaCfg, wsMgr, dep.CacheManager, dep.Metrics, dep.Logger)
 
 	return &Integrations{
 		WSManager:     wsMgr,
 		KafkaConsumer: consumer,
+		CacheManager:  dep.CacheManager,
 	}, nil
 }

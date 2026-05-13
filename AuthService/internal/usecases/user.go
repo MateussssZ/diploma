@@ -10,6 +10,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 
+	"authservice/internal/pkg/errorspkg"
 	"authservice/internal/repo"
 )
 
@@ -87,7 +88,7 @@ func (u *UserUsecase) Login(ctx context.Context, login, password string) (*Token
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return nil, errors.New("invalid credentials")
+		return nil, fmt.Errorf("UserUsecase.Login: %w", errorspkg.NewInvalidCredentialsError())
 	}
 
 	return u.issueTokenPair(ctx, user.ID)

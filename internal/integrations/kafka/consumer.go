@@ -8,6 +8,7 @@ import (
 	kafkago "github.com/segmentio/kafka-go"
 
 	"apigateway/config"
+	"apigateway/internal/integrations/cache"
 	"apigateway/internal/integrations/wsmanager"
 	"apigateway/internal/metrics"
 	"apigateway/internal/pkg/applogger"
@@ -15,18 +16,20 @@ import (
 
 // Consumer reads auction events from a Kafka topic and broadcasts them via WSManager.
 type Consumer struct {
-	cfg       config.Kafka
-	wsManager *wsmanager.WSManager
-	metrics   metrics.IMetrics
-	logger    applogger.IAppLogger
+	cfg          config.Kafka
+	wsManager    *wsmanager.WSManager
+	cacheManager *cache.CacheManager
+	metrics      metrics.IMetrics
+	logger       applogger.IAppLogger
 }
 
-func NewConsumer(cfg config.Kafka, wsManager *wsmanager.WSManager, m metrics.IMetrics, logger applogger.IAppLogger) *Consumer {
+func NewConsumer(cfg config.Kafka, wsManager *wsmanager.WSManager, cacheManager *cache.CacheManager, m metrics.IMetrics, logger applogger.IAppLogger) *Consumer {
 	return &Consumer{
-		cfg:       cfg,
-		wsManager: wsManager,
-		metrics:   m,
-		logger:    logger,
+		cfg:          cfg,
+		wsManager:    wsManager,
+		cacheManager: cacheManager,
+		metrics:      m,
+		logger:       logger,
 	}
 }
 
@@ -109,11 +112,14 @@ func (c *Consumer) Start(ctx context.Context) error {
 func (c *Consumer) handle(ctx context.Context, event Event) {
 	switch event.Type {
 	case EventBidPlaced, EventAuctionStatusChanged:
+		// Broadcast to WebSocket subscribers
 		c.wsManager.Broadcast(event.AuctionID, wsmanager.WSEvent{
 			Event:     event.Type,
 			AuctionID: event.AuctionID,
 			Payload:   event.Payload,
 		})
+		// Invalidate cache for this auction
+		c.cacheManager.InvalidateAuctionCache(ctx, event.AuctionID)
 	default:
 		c.logger.Info(ctx, "unknown kafka event type", "type", event.Type)
 	}

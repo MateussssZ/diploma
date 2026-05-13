@@ -2,11 +2,15 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"authservice/internal/pkg/errorspkg"
 	"authservice/internal/repo/models"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -24,6 +28,10 @@ func (r *UserRepo) Register(ctx context.Context, login, email, passwordHash stri
 		login, email, passwordHash,
 	)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return fmt.Errorf("UserRepo.Register: %w", errorspkg.NewUserAlreadyExistsError(login))
+		}
 		return fmt.Errorf("UserRepo.Register: %w", err)
 	}
 	return nil
@@ -36,6 +44,9 @@ func (r *UserRepo) FindByLogin(ctx context.Context, login string) (*models.User,
 	)
 	var u models.User
 	if err := row.Scan(&u.ID, &u.Login, &u.Email, &u.PasswordHash); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("UserRepo.FindByLogin: %w", errorspkg.NewUserNotFoundError(login))
+		}
 		return nil, fmt.Errorf("UserRepo.FindByLogin: %w", err)
 	}
 	return &u, nil
@@ -60,6 +71,9 @@ func (r *UserRepo) FindRefreshToken(ctx context.Context, token string) (int64, e
 	)
 	var userID int64
 	if err := row.Scan(&userID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, fmt.Errorf("UserRepo.FindRefreshToken: %w", errorspkg.NewTokenNotFoundError())
+		}
 		return 0, fmt.Errorf("UserRepo.FindRefreshToken: %w", err)
 	}
 	return userID, nil

@@ -21,6 +21,10 @@ type (
 		MaxSendMsgSize int    `mapstructure:"MaxSendMsgSize"`
 	}
 
+	HTTPServer struct {
+		Address string `mapstructure:"Address"`
+	}
+
 	Postgres struct {
 		User     string `mapstructure:"User"`
 		Password string `mapstructure:"Password"`
@@ -43,6 +47,7 @@ func (p Postgres) ToDSN() string {
 type Config struct {
 	Logger     Logger     `mapstructure:"Logger"`
 	GRPCServer GRPCServer `mapstructure:"GRPCServer"`
+	HTTPServer HTTPServer `mapstructure:"HTTPServer"`
 	Postgres   Postgres   `mapstructure:"Postgres"`
 	Auth       Auth       `mapstructure:"Auth"`
 }

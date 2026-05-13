@@ -1,6 +1,9 @@
 Logger:
   Level: -4
 
+HTTPServer:
+  Address: ":8082"
+
 GRPCServer:
   SocketPath: "C:/go/src/templateservice/authservice.sock"
   MaxRecvMsgSize: 8000000

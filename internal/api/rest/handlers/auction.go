@@ -14,6 +14,7 @@ import (
 
 	"apigateway/internal/api/rest/handlers/models"
 	"apigateway/internal/controllers"
+	"apigateway/internal/integrations/cache"
 	"apigateway/internal/pkg/errorspkg"
 	"apigateway/internal/pkg/validate"
 	"apigateway/internal/utils"
@@ -38,17 +39,19 @@ type IAuctionHandlers interface {
 }
 
 type AuctionHandlersDep struct {
-	Responder   IResponder               `validate:"required"`
-	AuctionCtrl controllers.IAuctionCtrl `validate:"required"`
-	WSManager   IWSManager               `validate:"required"`
-	JWTSecret   string                   `validate:"required"`
+	Responder    IResponder               `validate:"required"`
+	AuctionCtrl  controllers.IAuctionCtrl `validate:"required"`
+	WSManager    IWSManager               `validate:"required"`
+	JWTSecret    string                   `validate:"required"`
+	CacheManager *cache.CacheManager      `validate:"required"`
 }
 
 type AuctionHandlers struct {
-	responder   IResponder
-	auctionCtrl controllers.IAuctionCtrl
-	wsManager   IWSManager
-	jwtSecret   []byte
+	responder    IResponder
+	auctionCtrl  controllers.IAuctionCtrl
+	wsManager    IWSManager
+	jwtSecret    []byte
+	cacheManager *cache.CacheManager
 }
 
 func NewAuctionHandlers(dep AuctionHandlersDep) (*AuctionHandlers, error) {
@@ -56,10 +59,11 @@ func NewAuctionHandlers(dep AuctionHandlersDep) (*AuctionHandlers, error) {
 		return nil, errorspkg.NewValidationError("NewAuctionHandlers", err)
 	}
 	return &AuctionHandlers{
-		responder:   dep.Responder,
-		auctionCtrl: dep.AuctionCtrl,
-		wsManager:   dep.WSManager,
-		jwtSecret:   []byte(dep.JWTSecret),
+		responder:    dep.Responder,
+		auctionCtrl:  dep.AuctionCtrl,
+		wsManager:    dep.WSManager,
+		jwtSecret:    []byte(dep.JWTSecret),
+		cacheManager: dep.CacheManager,
 	}, nil
 }
 
@@ -90,7 +94,9 @@ func (h *AuctionHandlers) GetAuctionByID(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	auction, err := h.auctionCtrl.GetAuctionByID(ctx, auctionID)
+	auction, err := h.cacheManager.GetAuctionDetail(ctx, auctionID, func() (*models.AuctionDetail, error) {
+		return h.auctionCtrl.GetAuctionByID(ctx, auctionID)
+	})
 	if err != nil {
 		h.responder.WriteError(ctx, w, err)
 		return
