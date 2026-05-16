@@ -103,6 +103,7 @@ func NewRest(_ context.Context, dep RestDep) (*Rest, error) {
 		BaseHandlers:        bases,
 		UserHandlers:        userHandlers,
 		AuctionHandlers:     auctionHandlers,
+		EnablePprof:         dep.Config.EnablePprof,
 	})
 	if err != nil {
 		return nil, err

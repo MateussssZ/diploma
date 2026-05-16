@@ -16,6 +16,7 @@ type IntegrationsDep struct {
 	Metrics        metrics.IMetrics          `validate:"required"`
 	Logger         applogger.IAppLogger      `validate:"required"`
 	KafkaCfg       config.Kafka
+	WSCfg          config.WSConfig
 	CacheManager   *cache.CacheManager `validate:"required"`
 }
 
@@ -30,7 +31,13 @@ func NewIntegrations(dep IntegrationsDep) (*Integrations, error) {
 		return nil, errorspkg.NewValidationError("NewIntegrations", err)
 	}
 
-	wsMgr := wsmanager.NewWSManager(dep.AuctionActions, dep.Metrics, dep.Logger)
+	wsMgr := wsmanager.NewWSManager(wsmanager.WSManagerConfig{
+		NumActionWorkers:    dep.WSCfg.NumActionWorkers,
+		NumBroadcastWorkers: dep.WSCfg.NumBroadcastWorkers,
+		BroadcastBufSize:    dep.WSCfg.BroadcastBufSize,
+		ActionQueueSize:     dep.WSCfg.ActionQueueSize,
+		MaxConnections:      dep.WSCfg.MaxConnections,
+	}, dep.AuctionActions, dep.Metrics, dep.Logger)
 	consumer := kafka.NewConsumer(dep.KafkaCfg, wsMgr, dep.CacheManager, dep.Metrics, dep.Logger)
 
 	return &Integrations{

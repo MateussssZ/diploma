@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -10,6 +11,7 @@ import (
 	"apigateway/internal/api/rest/handlers/models"
 	"apigateway/internal/controllers"
 	"apigateway/internal/pkg/errorspkg"
+	"apigateway/internal/pkg/validate"
 	"apigateway/internal/utils"
 )
 
@@ -67,6 +69,10 @@ func (h *HTTPAuctionHandlers) GetAuctionByID(w http.ResponseWriter, r *http.Requ
 		h.responder.WriteError(ctx, w, errorspkg.NewUnitIsMissedError("auction_id"), WithStatusCode(http.StatusBadRequest))
 		return
 	}
+	if _, err := strconv.ParseInt(auctionID, 10, 64); err != nil {
+		h.responder.WriteError(ctx, w, errorspkg.NewValidationError("GetAuctionByID", err), WithStatusCode(http.StatusBadRequest))
+		return
+	}
 
 	auction, err := h.auctionCtrl.GetAuctionByID(ctx, auctionID)
 	if err != nil {
@@ -82,6 +88,11 @@ func (h *HTTPAuctionHandlers) CreateAuction(w http.ResponseWriter, r *http.Reque
 
 	var data models.CreateAuctionRequest
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.responder.WriteError(ctx, w, err, WithStatusCode(http.StatusBadRequest))
+		return
+	}
+
+	if err := validate.Struct(data); err != nil {
 		h.responder.WriteError(ctx, w, err, WithStatusCode(http.StatusBadRequest))
 		return
 	}
@@ -109,12 +120,23 @@ func (h *HTTPAuctionHandlers) PlaceBid(w http.ResponseWriter, r *http.Request) {
 		h.responder.WriteError(ctx, w, errorspkg.NewUnitIsMissedError("auction_id"), WithStatusCode(http.StatusBadRequest))
 		return
 	}
+	if _, err := strconv.ParseInt(auctionID, 10, 64); err != nil {
+		h.responder.WriteError(ctx, w, errorspkg.NewValidationError("PlaceBid", err), WithStatusCode(http.StatusBadRequest))
+		return
+	}
 
 	var data struct {
 		Amount int64 `json:"amount"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.responder.WriteError(ctx, w, err, WithStatusCode(http.StatusBadRequest))
+		return
+	}
+
+	if data.Amount <= 0 {
+		h.responder.WriteError(ctx, w,
+			errorspkg.NewValidationError("PlaceBid", errors.New("amount must be greater than 0")),
+			WithStatusCode(http.StatusBadRequest))
 		return
 	}
 

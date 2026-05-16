@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	auctionpb "apigateway/api/grpc/auctionservice"
 	"apigateway/internal/api/rest/handlers/models"
@@ -11,6 +12,11 @@ import (
 	"apigateway/internal/pkg/errorspkg"
 	"apigateway/internal/pkg/validate"
 )
+
+// grpcCallTimeout caps individual gRPC calls to AuctionService.
+// The gRPC service config also enforces a timeout, but this provides a
+// defence-in-depth layer for calls originating from HTTP handlers.
+const grpcCallTimeout = 4 * time.Second
 
 type IAuctionUsecase interface {
 	GetAuctions(ctx context.Context, page, pageSize int) (*models.AuctionListResponse, error)
@@ -39,7 +45,10 @@ func NewAuctionUsecase(dep AuctionUsecaseDep) (*AuctionUsecase, error) {
 }
 
 func (u *AuctionUsecase) GetAuctions(ctx context.Context, page, pageSize int) (*models.AuctionListResponse, error) {
-	resp, err := u.auctionClient.LotClient.GetLots(ctx, &auctionpb.GetLotsRequest{
+	callCtx, cancel := context.WithTimeout(ctx, grpcCallTimeout)
+	defer cancel()
+
+	resp, err := u.auctionClient.LotClient.GetLots(callCtx, &auctionpb.GetLotsRequest{
 		Page: int32(page),
 		Size: int32(pageSize),
 	})
@@ -70,7 +79,10 @@ func (u *AuctionUsecase) GetAuctionByID(ctx context.Context, auctionID string) (
 		return nil, errorspkg.NewValidationError("AuctionUsecase.GetAuctionByID", fmt.Errorf("invalid auctionID: %w", err))
 	}
 
-	lot, err := u.auctionClient.LotClient.GetLot(ctx, &auctionpb.GetLotRequest{Id: id})
+	callCtx, cancel := context.WithTimeout(ctx, grpcCallTimeout)
+	defer cancel()
+
+	lot, err := u.auctionClient.LotClient.GetLot(callCtx, &auctionpb.GetLotRequest{Id: id})
 	if err != nil {
 		return nil, fmt.Errorf("AuctionUsecase.GetAuctionByID: %w", err)
 	}
@@ -89,7 +101,10 @@ func (u *AuctionUsecase) GetAuctionByID(ctx context.Context, auctionID string) (
 func (u *AuctionUsecase) GetUserAuctions(ctx context.Context, userID string) (*models.AuctionListResponse, error) {
 	// TODO: AuctionService пока не поддерживает фильтрацию по продавцу —
 	// запрашиваем активные лоты как временная заглушка
-	resp, err := u.auctionClient.LotClient.GetLots(ctx, &auctionpb.GetLotsRequest{
+	callCtx, cancel := context.WithTimeout(ctx, grpcCallTimeout)
+	defer cancel()
+
+	resp, err := u.auctionClient.LotClient.GetLots(callCtx, &auctionpb.GetLotsRequest{
 		Page:           0,
 		Size:           100,
 		FilterByStatus: true,
@@ -128,7 +143,10 @@ func (u *AuctionUsecase) CreateAuction(ctx context.Context, req models.CreateAuc
 		return "", errorspkg.NewValidationError("AuctionUsecase.CreateAuction", fmt.Errorf("invalid userID: %w", err))
 	}
 
-	lot, err := u.auctionClient.LotClient.CreateLot(ctx, &auctionpb.CreateLotRequest{
+	callCtx, cancel := context.WithTimeout(ctx, grpcCallTimeout)
+	defer cancel()
+
+	lot, err := u.auctionClient.LotClient.CreateLot(callCtx, &auctionpb.CreateLotRequest{
 		Title:         req.Title,
 		Description:   req.Description,
 		StartingPrice: strconv.FormatInt(req.StartPrice, 10),
@@ -152,7 +170,10 @@ func (u *AuctionUsecase) PlaceBid(ctx context.Context, auctionID string, amount 
 		return nil, errorspkg.NewValidationError("AuctionUsecase.PlaceBid", fmt.Errorf("invalid userID: %w", err))
 	}
 
-	_, err = u.auctionClient.BidClient.PlaceBid(ctx, &auctionpb.PlaceBidRequest{
+	callCtx, cancel := context.WithTimeout(ctx, grpcCallTimeout)
+	defer cancel()
+
+	_, err = u.auctionClient.BidClient.PlaceBid(callCtx, &auctionpb.PlaceBidRequest{
 		LotId:    lotID,
 		BidderId: bidderID,
 		Amount:   strconv.FormatInt(amount, 10),

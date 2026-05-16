@@ -20,12 +20,16 @@ type RedisClient struct {
 	client *redis.Client
 }
 
-func NewRedisClient(address string, db int, password string, maxRetries int) (*RedisClient, error) {
+func NewRedisClient(address string, db int, password string, maxRetries, poolSize int, dialTimeout, readTimeout, writeTimeout time.Duration) (*RedisClient, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr:       address,
-		DB:         db,
-		Password:   password,
-		MaxRetries: maxRetries,
+		Addr:         address,
+		DB:           db,
+		Password:     password,
+		MaxRetries:   maxRetries,
+		PoolSize:     poolSize,
+		DialTimeout:  dialTimeout,
+		ReadTimeout:  readTimeout,
+		WriteTimeout: writeTimeout,
 	})
 
 	// Проверяем соединение

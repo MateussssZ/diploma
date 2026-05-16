@@ -1,6 +1,6 @@
 # [LevelDebug = -4 LevelInfo = 0 LevelWarn = 4 LevelError = 8]
 Logger:
-  Level: -4
+  Level: 0
 
 GRPCServer:
   Address: "0.0.0.0:8091"
@@ -9,12 +9,13 @@ GRPCServer:
 
 RESTServer:
   ListenPort: "8081"
-  ReadTimeout: 10s
-  WriteTimeout: 30s
+  ReadTimeout: 5s
+  WriteTimeout: 10s
   ShutdownTimeout: 5s
-  ReadHeaderTimeout: 500ms
-  IdleTimeout: 1s
-  MaxHeaderBytes: 1024
+  ReadHeaderTimeout: 2s
+  IdleTimeout: 30s
+  MaxHeaderBytes: 8192
+  EnablePprof: true   # set to false in production
 
 AuctionService:
   Address: "localhost:9090"
@@ -27,7 +28,10 @@ Redis:
   DB: 0
   Password: ""
   MaxRetries: 3
-  PoolSize: 10
+  PoolSize: 100
+  DialTimeout: 1s
+  ReadTimeout: 500ms
+  WriteTimeout: 500ms
 
 CacheConfig:
   AuctionDetailTTL: 10m
@@ -37,3 +41,16 @@ Kafka:
     - "kafka:9092" # important to add string "127.0.0.1 kafka" to your hosts file
   Topic: "auction-events"
   GroupID: "api-gateway"
+
+# WebSocket manager tuning.
+# NumActionWorkers: goroutines for blocking gRPC calls (PlaceBid/CreateAuction).
+#   Formula: target_bid_rps / (1000 / grpc_p99_ms)
+#   Profile via /debug/pprof/goroutine to verify workers aren't saturated.
+# NumBroadcastWorkers: goroutines draining broadcastCh.
+#   Increase if ws_broadcast_dropped_total rises under sustained load.
+WS:
+  NumActionWorkers: 4        # adjust after profiling; see formula in config/config.go
+  NumBroadcastWorkers: 8
+  BroadcastBufSize: 4096
+  ActionQueueSize: 1024
+  MaxConnections: 50000

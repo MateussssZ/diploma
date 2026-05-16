@@ -32,6 +32,12 @@ type IMetrics interface {
 	WSBroadcastDroppedInc()
 	WSMessagesReceivedInc(action string)
 	WSMessagesSentInc(event string)
+
+	// Cache
+	CacheHitInc(key string)
+	CacheMissInc(key string)
+	CacheInvalidationInc(key string)
+	CacheErrorInc(operation string)
 }
 
 type metricsCollector struct {
@@ -58,6 +64,12 @@ type metricsCollector struct {
 	wsBroadcastDropped  prometheus.Counter
 	wsMessagesReceived  *prometheus.CounterVec
 	wsMessagesSent      *prometheus.CounterVec
+
+	// Cache
+	cacheHits          *prometheus.CounterVec
+	cacheMisses        *prometheus.CounterVec
+	cacheInvalidations *prometheus.CounterVec
+	cacheErrors        *prometheus.CounterVec
 }
 
 type Prometheus struct {
@@ -133,6 +145,24 @@ func NewPrometheus() *Prometheus {
 		[]string{"event"},
 	)
 
+	// Cache
+	cacheHits := prometheus.NewCounterVec(
+		prometheus.CounterOpts{Name: "cache_hits_total", Help: "Total cache hits"},
+		[]string{"key"},
+	)
+	cacheMisses := prometheus.NewCounterVec(
+		prometheus.CounterOpts{Name: "cache_misses_total", Help: "Total cache misses"},
+		[]string{"key"},
+	)
+	cacheInvalidations := prometheus.NewCounterVec(
+		prometheus.CounterOpts{Name: "cache_invalidations_total", Help: "Total cache invalidations"},
+		[]string{"key"},
+	)
+	cacheErrors := prometheus.NewCounterVec(
+		prometheus.CounterOpts{Name: "cache_errors_total", Help: "Total cache errors by operation"},
+		[]string{"operation"},
+	)
+
 	registry.MustRegister(
 		gRPCServerRequestsTotal,
 		gRPCServerRequestDuration,
@@ -148,6 +178,10 @@ func NewPrometheus() *Prometheus {
 		wsBroadcastDropped,
 		wsMessagesReceived,
 		wsMessagesSent,
+		cacheHits,
+		cacheMisses,
+		cacheInvalidations,
+		cacheErrors,
 	)
 
 	return &Prometheus{
@@ -167,6 +201,10 @@ func NewPrometheus() *Prometheus {
 			wsBroadcastDropped:             wsBroadcastDropped,
 			wsMessagesReceived:             wsMessagesReceived,
 			wsMessagesSent:                 wsMessagesSent,
+			cacheHits:                      cacheHits,
+			cacheMisses:                    cacheMisses,
+			cacheInvalidations:             cacheInvalidations,
+			cacheErrors:                    cacheErrors,
 		},
 	}
 }
@@ -215,4 +253,18 @@ func (p *Prometheus) WSMessagesReceivedInc(action string) {
 }
 func (p *Prometheus) WSMessagesSentInc(event string) {
 	p.collector.wsMessagesSent.WithLabelValues(event).Inc()
+}
+
+// Cache
+func (p *Prometheus) CacheHitInc(key string) {
+	p.collector.cacheHits.WithLabelValues(key).Inc()
+}
+func (p *Prometheus) CacheMissInc(key string) {
+	p.collector.cacheMisses.WithLabelValues(key).Inc()
+}
+func (p *Prometheus) CacheInvalidationInc(key string) {
+	p.collector.cacheInvalidations.WithLabelValues(key).Inc()
+}
+func (p *Prometheus) CacheErrorInc(operation string) {
+	p.collector.cacheErrors.WithLabelValues(operation).Inc()
 }

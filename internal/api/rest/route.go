@@ -6,6 +6,7 @@ import (
 	"apigateway/internal/pkg/errorspkg"
 	"apigateway/internal/pkg/validate"
 	"net/http"
+	_ "net/http/pprof" // registers /debug/pprof/* handlers on http.DefaultServeMux
 
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -20,6 +21,7 @@ type RouteDep struct {
 	BaseHandlers        handlers.IBaseHandlers    `validate:"required"`
 	UserHandlers        handlers.IUserHandlers    `validate:"required"`
 	AuctionHandlers     handlers.IAuctionHandlers `validate:"required"`
+	EnablePprof         bool
 }
 
 func NewRoute(dep RouteDep) (http.Handler, error) {
@@ -40,6 +42,11 @@ func NewRoute(dep RouteDep) (http.Handler, error) {
 		promhttp.HandlerOpts{},
 	)).Methods(http.MethodGet)
 
+	// pprof profiling (disable in production via config)
+	if dep.EnablePprof {
+		r.PathPrefix("/debug/pprof/").Handler(http.DefaultServeMux)
+	}
+
 	// User and authentication routes
 	auth := r.PathPrefix("/auth").Subrouter()
 	auth.HandleFunc("/register", dep.UserHandlers.Register).Methods(http.MethodPost)
@@ -56,7 +63,7 @@ func NewRoute(dep RouteDep) (http.Handler, error) {
 	auction.HandleFunc("/subscribed", dep.AuctionHandlers.GetSubscribedAuctions).Methods(http.MethodGet)
 	auction.HandleFunc("/{auction_id}", dep.AuctionHandlers.GetAuctionByID).Methods(http.MethodGet)
 
-	// WebSocket endpoint (auth через query param ?token=...)
+	// WebSocket endpoint (auth via query param ?token=...)
 	ws := r.PathPrefix("/ws").Subrouter()
 	ws.HandleFunc("/auctions", dep.AuctionHandlers.ConnectAuction).Methods(http.MethodGet)
 

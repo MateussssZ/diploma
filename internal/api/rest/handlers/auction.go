@@ -23,10 +23,14 @@ import (
 // IWSManager is the interface implemented by wsmanager.WSManager.
 type IWSManager interface {
 	HandleConnection(ctx context.Context, conn *websocket.Conn, userID string)
+	ConnectionCount() int
+	MaxConnectionsLimit() int
 }
 
 var wsUpgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
 type IAuctionHandlers interface {
@@ -93,6 +97,10 @@ func (h *AuctionHandlers) GetAuctionByID(w http.ResponseWriter, r *http.Request)
 		h.responder.WriteError(ctx, w, errorspkg.NewUnitIsMissedError("auction_id"), WithStatusCode(http.StatusBadRequest))
 		return
 	}
+	if _, err := strconv.ParseInt(auctionID, 10, 64); err != nil {
+		h.responder.WriteError(ctx, w, errorspkg.NewValidationError("GetAuctionByID", err), WithStatusCode(http.StatusBadRequest))
+		return
+	}
 
 	auction, err := h.cacheManager.GetAuctionDetail(ctx, auctionID, func() (*models.AuctionDetail, error) {
 		return h.auctionCtrl.GetAuctionByID(ctx, auctionID)
@@ -146,6 +154,11 @@ func (h *AuctionHandlers) CreateAuction(w http.ResponseWriter, r *http.Request) 
 
 	var data models.CreateAuctionRequest
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.responder.WriteError(ctx, w, err, WithStatusCode(http.StatusBadRequest))
+		return
+	}
+
+	if err := validate.Struct(data); err != nil {
 		h.responder.WriteError(ctx, w, err, WithStatusCode(http.StatusBadRequest))
 		return
 	}
@@ -205,6 +218,12 @@ func (h *AuctionHandlers) ConnectAuction(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	defer ws.Close()
+
+	if h.wsManager.ConnectionCount() >= h.wsManager.MaxConnectionsLimit() {
+		ws.WriteMessage(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseTryAgainLater, "too many connections"))
+		return
+	}
 
 	h.wsManager.HandleConnection(ctx, ws, userID)
 }

@@ -3,6 +3,7 @@ package kafka
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	kafkago "github.com/segmentio/kafka-go"
@@ -38,7 +39,11 @@ func (c *Consumer) newReader() *kafkago.Reader {
 		Brokers:        c.cfg.Brokers,
 		Topic:          c.cfg.Topic,
 		GroupID:        c.cfg.GroupID,
-		CommitInterval: 0, // manual commit — at-least-once
+		CommitInterval: 0,                      // manual commit — at-least-once
+		MinBytes:       10e3,                   // 10 KB — wait to accumulate before returning
+		MaxBytes:       10e6,                   // 10 MB — max fetch size per request
+		MaxWait:        500 * time.Millisecond, // max time to wait for MinBytes
+		QueueCapacity:  100,                    // internal message buffer
 	})
 }
 
@@ -110,6 +115,15 @@ func (c *Consumer) Start(ctx context.Context) error {
 }
 
 func (c *Consumer) handle(ctx context.Context, event Event) {
+	defer func() {
+		if r := recover(); r != nil {
+			c.logger.Error(ctx, fmt.Errorf("kafka event handler panicked: %v", r),
+				"event_type", event.Type,
+				"auction_id", event.AuctionID,
+			)
+		}
+	}()
+
 	switch event.Type {
 	case EventBidPlaced, EventAuctionStatusChanged:
 		// Broadcast to WebSocket subscribers

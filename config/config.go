@@ -30,6 +30,7 @@ type (
 		ReadHeaderTimeout time.Duration `mapstructure:"ReadHeaderTimeout" validate:"gt=0"`
 		IdleTimeout       time.Duration `mapstructure:"IdleTimeout" validate:"gt=0"`
 		MaxHeaderBytes    int           `mapstructure:"MaxHeaderBytes" validate:"gt=0"`
+		EnablePprof       bool          `mapstructure:"EnablePprof"`
 	}
 )
 
@@ -42,6 +43,7 @@ type Config struct {
 	Redis          RedisConfig    `mapstructure:"Redis" validate:"required"`
 	CacheConfig    CacheConfig    `mapstructure:"CacheConfig" validate:"required"`
 	Kafka          Kafka          `mapstructure:"Kafka" validate:"required"`
+	WS             WSConfig       `mapstructure:"WS" validate:"required"`
 }
 
 // GRPCClient is the address of an external gRPC service (TCP).
@@ -63,16 +65,44 @@ type Kafka struct {
 
 // RedisConfig holds Redis configuration.
 type RedisConfig struct {
-	Address    string `mapstructure:"Address" validate:"required,min=1"`
-	DB         int    `mapstructure:"DB" validate:"gte=0,lte=15"`
-	Password   string `mapstructure:"Password"`
-	MaxRetries int    `mapstructure:"MaxRetries" validate:"gte=0"`
-	PoolSize   int    `mapstructure:"PoolSize" validate:"gt=0"`
+	Address      string        `mapstructure:"Address" validate:"required,min=1"`
+	DB           int           `mapstructure:"DB" validate:"gte=0,lte=15"`
+	Password     string        `mapstructure:"Password"`
+	MaxRetries   int           `mapstructure:"MaxRetries" validate:"gte=0"`
+	PoolSize     int           `mapstructure:"PoolSize" validate:"gt=0"`
+	DialTimeout  time.Duration `mapstructure:"DialTimeout" validate:"gt=0"`
+	ReadTimeout  time.Duration `mapstructure:"ReadTimeout" validate:"gt=0"`
+	WriteTimeout time.Duration `mapstructure:"WriteTimeout" validate:"gt=0"`
 }
 
 // CacheConfig holds cache TTL configuration.
 type CacheConfig struct {
 	AuctionDetailTTL time.Duration `mapstructure:"AuctionDetailTTL" validate:"gt=0"`
+}
+
+// WSConfig holds WebSocket manager tuning parameters.
+// These directly control throughput of real-time bid/auction events.
+//
+//	NumActionWorkers: goroutines executing blocking gRPC calls (PlaceBid, CreateAuction).
+//	  Formula: target_bid_rps / (1000ms / grpc_p99_latency_ms)
+//	  Example: 500 bids/sec @ 20ms p99 → 500/(1000/20) = 10 workers
+//	  Default: 4 (safe baseline; profile with pprof and adjust)
+//
+//	NumBroadcastWorkers: goroutines draining the broadcast channel.
+//	  Each worker calls deliver() which fans out to subscribers.
+//	  Scale if ws_broadcast_dropped_total rises under load.
+//
+//	BroadcastBufSize: shared channel capacity (events). If full, events are dropped
+//	  and ws_broadcast_dropped_total increments.
+//
+//	ActionQueueSize: per-worker-pool job queue depth. If full, gRPC actions are
+//	  dropped and clients receive an error WS event.
+type WSConfig struct {
+	NumActionWorkers    int `mapstructure:"NumActionWorkers" validate:"gt=0"`
+	NumBroadcastWorkers int `mapstructure:"NumBroadcastWorkers" validate:"gt=0"`
+	BroadcastBufSize    int `mapstructure:"BroadcastBufSize" validate:"gt=0"`
+	ActionQueueSize     int `mapstructure:"ActionQueueSize" validate:"gt=0"`
+	MaxConnections      int `mapstructure:"MaxConnections" validate:"gt=0"`
 }
 
 func NewConfig() (*Config, error) {

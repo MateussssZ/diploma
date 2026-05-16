@@ -1,10 +1,10 @@
 package rest
 
 import (
-	"context"
-	"fmt"
 	"apigateway/internal/pkg/errorspkg"
 	"apigateway/internal/pkg/validate"
+	"context"
+	"fmt"
 	"net/http"
 	"time"
 )
@@ -65,6 +65,8 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 }
 
-func (s *Server) Stop(ctx context.Context) error {
+func (s *Server) Stop(_ context.Context) error {
+	ctx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
+	defer cancel()
 	return s.srvHTTP.Shutdown(ctx)
 }

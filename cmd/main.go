@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -59,6 +60,10 @@ func main() {
 	if err := eg.Wait(); err != nil && !errors.Is(err, context.Canceled) {
 		logger.Error(ctx, err)
 	}
+
+	stopCtx, stopCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer stopCancel()
+	application.Stop(stopCtx)
 
 	logger.Info(ctx, "application stopped")
 }
