@@ -35,7 +35,7 @@ type (
 )
 
 type Config struct {
-	Logger         Logger         `mapstructure:"Logger" validate:"required"`
+	Logger         Logger         `mapstructure:"Logger"`
 	GRPCServer     GRPCServer     `mapstructure:"GRPCServer" validate:"required"`
 	RESTServer     RESTServer     `mapstructure:"RESTServer" validate:"required"`
 	AuctionService GRPCClient     `mapstructure:"AuctionService" validate:"required"`

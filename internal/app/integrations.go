@@ -37,8 +37,8 @@ func NewIntegrations(dep IntegrationsDep) (*Integrations, error) {
 		BroadcastBufSize:    dep.WSCfg.BroadcastBufSize,
 		ActionQueueSize:     dep.WSCfg.ActionQueueSize,
 		MaxConnections:      dep.WSCfg.MaxConnections,
-	}, dep.AuctionActions, dep.Metrics, dep.Logger)
-	consumer := kafka.NewConsumer(dep.KafkaCfg, wsMgr, dep.CacheManager, dep.Metrics, dep.Logger)
+	}, dep.AuctionActions, dep.CacheManager, dep.Metrics, dep.Logger)
+	consumer := kafka.NewConsumer(dep.KafkaCfg, wsMgr, dep.Metrics, dep.Logger)
 
 	return &Integrations{
 		WSManager:     wsMgr,

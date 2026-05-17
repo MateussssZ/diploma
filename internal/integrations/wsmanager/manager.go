@@ -53,6 +53,12 @@ type IAuctionActions interface {
 	PlaceBid(ctx context.Context, auctionID string, amount int64, userID string) (*models.PlaceBidResponse, error)
 }
 
+// ICacheInvalidator is the cache invalidation interface used by the manager.
+// It is satisfied by *cache.CacheManager; defined here to avoid an import cycle.
+type ICacheInvalidator interface {
+	InvalidateAuctionCache(ctx context.Context, auctionID string)
+}
+
 type connection struct {
 	id     string
 	userID string
@@ -82,6 +88,7 @@ type WSManager struct {
 	sendBufSize         int
 
 	actions IAuctionActions
+	cache   ICacheInvalidator
 	metrics metrics.IMetrics
 	logger  applogger.IAppLogger
 }
@@ -97,7 +104,7 @@ type WSManagerConfig struct {
 	MaxConnections      int // hard cap on simultaneous WS connections
 }
 
-func NewWSManager(cfg WSManagerConfig, actions IAuctionActions, m metrics.IMetrics, logger applogger.IAppLogger) *WSManager {
+func NewWSManager(cfg WSManagerConfig, actions IAuctionActions, cache ICacheInvalidator, m metrics.IMetrics, logger applogger.IAppLogger) *WSManager {
 	return &WSManager{
 		connections:         make(map[string]*connection),
 		subscribers:         make(map[string]map[string]struct{}),
@@ -107,8 +114,9 @@ func NewWSManager(cfg WSManagerConfig, actions IAuctionActions, m metrics.IMetri
 		numBroadcastWorkers: cfg.NumBroadcastWorkers,
 		numActionWorkers:    cfg.NumActionWorkers,
 		maxConnections:      cfg.MaxConnections,
-		sendBufSize:         128, // per-connection outbound; small (auction events are ~200B)
+		sendBufSize:         128,
 		actions:             actions,
+		cache:               cache,
 		metrics:             m,
 		logger:              logger,
 	}
@@ -462,6 +470,11 @@ func (m *WSManager) handleCreateAuction(ctx context.Context, conn *connection, r
 		return
 	}
 
+	// No cache entry exists yet for a brand-new auction, but invalidate defensively.
+	if m.cache != nil {
+		m.cache.InvalidateAuctionCache(ctx, auctionID)
+	}
+
 	trySend(conn.send, WSEvent{
 		Event:     "auction_created",
 		AuctionID: auctionID,
@@ -491,15 +504,17 @@ func (m *WSManager) handlePlaceBid(ctx context.Context, conn *connection, auctio
 		return
 	}
 
-	m.Broadcast(auctionID, WSEvent{
-		Event:     "bid_placed",
-		AuctionID: auctionID,
-		Payload: map[string]interface{}{
-			"bidder_id": conn.userID,
-			"amount":    p.Amount,
-			"success":   result.Success,
-		},
-	})
+	// Invalidate cache immediately so the next REST GET returns fresh data.
+	// The WS broadcast (bid_placed) is intentionally NOT sent here — it arrives
+	// via the Kafka consumer, which carries the authoritative bid data
+	// (bid_id, new_current_price, placed_at) from AuctionService.
+	// This ensures every subscriber (including the bidder) receives exactly
+	// one bid_placed event with complete information.
+	if m.cache != nil {
+		m.cache.InvalidateAuctionCache(ctx, auctionID)
+	}
+
+	_ = result // result.Success is confirmed by the absence of an error above
 }
 
 // trySend attempts a non-blocking send on ch.

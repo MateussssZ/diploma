@@ -4,33 +4,41 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	kafkago "github.com/segmentio/kafka-go"
 
 	"apigateway/config"
-	"apigateway/internal/integrations/cache"
 	"apigateway/internal/integrations/wsmanager"
 	"apigateway/internal/metrics"
 	"apigateway/internal/pkg/applogger"
 )
 
-// Consumer reads auction events from a Kafka topic and broadcasts them via WSManager.
+// Consumer reads bid events from a Kafka topic and fans them out via WSManager.
+//
+// Responsibility split:
+//   - Cache invalidation is handled by wsmanager.handlePlaceBid immediately after
+//     a successful gRPC PlaceBid call. The gRPC response is the authoritative signal
+//     that the bid is committed in PostgreSQL — this keeps the cache correct even if
+//     Kafka is temporarily unavailable.
+//   - This consumer is the authoritative source for WS fan-out only. Kafka carries
+//     the full event payload (bid_id, new_current_price, placed_at) that the gRPC
+//     response does not expose. All WS subscribers receive exactly one bid_placed
+//     event with complete data.
 type Consumer struct {
-	cfg          config.Kafka
-	wsManager    *wsmanager.WSManager
-	cacheManager *cache.CacheManager
-	metrics      metrics.IMetrics
-	logger       applogger.IAppLogger
+	cfg       config.Kafka
+	wsManager *wsmanager.WSManager
+	metrics   metrics.IMetrics
+	logger    applogger.IAppLogger
 }
 
-func NewConsumer(cfg config.Kafka, wsManager *wsmanager.WSManager, cacheManager *cache.CacheManager, m metrics.IMetrics, logger applogger.IAppLogger) *Consumer {
+func NewConsumer(cfg config.Kafka, wsManager *wsmanager.WSManager, m metrics.IMetrics, logger applogger.IAppLogger) *Consumer {
 	return &Consumer{
-		cfg:          cfg,
-		wsManager:    wsManager,
-		cacheManager: cacheManager,
-		metrics:      m,
-		logger:       logger,
+		cfg:       cfg,
+		wsManager: wsManager,
+		metrics:   m,
+		logger:    logger,
 	}
 }
 
@@ -90,9 +98,9 @@ func (c *Consumer) Start(ctx context.Context) error {
 		backoff = backoffMin
 		start := time.Now()
 
-		var event Event
+		var event BidEvent
 		if err := json.Unmarshal(msg.Value, &event); err != nil {
-			c.logger.Info(ctx, "failed to unmarshal kafka event", "error", err.Error())
+			c.logger.Info(ctx, "failed to unmarshal kafka bid event", "error", err.Error())
 			c.metrics.KafkaConsumerErrorsInc(c.cfg.Topic)
 			_ = reader.CommitMessages(ctx, msg) // skip poison pill
 			continue
@@ -114,27 +122,39 @@ func (c *Consumer) Start(ctx context.Context) error {
 	}
 }
 
-func (c *Consumer) handle(ctx context.Context, event Event) {
+func (c *Consumer) handle(ctx context.Context, event BidEvent) {
+	auctionID := strconv.FormatInt(event.LotID, 10)
+
 	defer func() {
 		if r := recover(); r != nil {
 			c.logger.Error(ctx, fmt.Errorf("kafka event handler panicked: %v", r),
-				"event_type", event.Type,
-				"auction_id", event.AuctionID,
+				"auction_id", auctionID,
 			)
 		}
 	}()
 
-	switch event.Type {
-	case EventBidPlaced, EventAuctionStatusChanged:
-		// Broadcast to WebSocket subscribers
-		c.wsManager.Broadcast(event.AuctionID, wsmanager.WSEvent{
-			Event:     event.Type,
-			AuctionID: event.AuctionID,
-			Payload:   event.Payload,
-		})
-		// Invalidate cache for this auction
-		c.cacheManager.InvalidateAuctionCache(ctx, event.AuctionID)
-	default:
-		c.logger.Info(ctx, "unknown kafka event type", "type", event.Type)
-	}
+	c.logger.Info(ctx, "kafka bid event received",
+		"auction_id", auctionID,
+		"bid_id", event.BidID,
+		"bidder_id", event.BidderID,
+		"amount", event.Amount,
+		"new_current_price", event.NewCurrentPrice,
+	)
+
+	// Broadcast bid_placed to all WebSocket subscribers.
+	// This is the only source of WS fan-out — carries the full payload
+	// (bid_id, new_current_price, placed_at) not available in the gRPC response.
+	// Cache invalidation is NOT done here — it is handled in wsmanager.handlePlaceBid
+	// right after gRPC success, which is the authoritative commit signal.
+	c.wsManager.Broadcast(auctionID, wsmanager.WSEvent{
+		Event:     EventBidPlaced,
+		AuctionID: auctionID,
+		Payload: map[string]interface{}{
+			"bid_id":            event.BidID,
+			"bidder_id":         event.BidderID,
+			"amount":            event.Amount,
+			"new_current_price": event.NewCurrentPrice,
+			"placed_at":         event.PlacedAt,
+		},
+	})
 }

@@ -9,8 +9,8 @@ GRPCServer:
 
 RESTServer:
   ListenPort: "8081"
-  ReadTimeout: 5s
-  WriteTimeout: 10s
+  ReadTimeout: 30s   # increased: pprof CPU profile needs up to 30s window
+  WriteTimeout: 30s  # increased: pprof response can be large
   ShutdownTimeout: 5s
   ReadHeaderTimeout: 2s
   IdleTimeout: 30s
@@ -38,8 +38,8 @@ CacheConfig:
 
 Kafka:
   Brokers:
-    - "kafka:9092" # important to add string "127.0.0.1 kafka" to your hosts file
-  Topic: "auction-events"
+    - "localhost:9092"  # kafka advertised on host via 9092 port mapping
+  Topic: "new-bids"    # AuctionService publishes bid events here
   GroupID: "api-gateway"
 
 # WebSocket manager tuning.

@@ -1,17 +1,18 @@
 package kafka
 
-import "encoding/json"
-
 const (
-	EventBidPlaced            = "bid_placed"
-	EventAuctionStatusChanged = "auction_status_changed"
+	EventBidPlaced = "bid_placed"
 )
 
-// Event is a domain event received from Kafka.
-// Timestamp is Unix milliseconds; events within a partition are ordered by it.
-type Event struct {
-	Type      string          `json:"type"`
-	AuctionID string          `json:"auction_id"`
-	Timestamp int64           `json:"timestamp"`
-	Payload   json.RawMessage `json:"payload"`
+// BidEvent is the raw event published by AuctionService into the "new-bids" topic.
+// Field names match exactly what the Java service serialises.
+//
+//	{"bidId":1,"lotId":2,"bidderId":9,"amount":110000,"newCurrentPrice":110000,"placedAt":"2026-05-16T12:54:51"}
+type BidEvent struct {
+	BidID           int64  `json:"bidId"`
+	LotID           int64  `json:"lotId"` // = auctionID in our domain
+	BidderID        int64  `json:"bidderId"`
+	Amount          int64  `json:"amount"`
+	NewCurrentPrice int64  `json:"newCurrentPrice"`
+	PlacedAt        string `json:"placedAt"`
 }
