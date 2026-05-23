@@ -15,7 +15,6 @@ import (
 	"apigateway/internal/utils"
 )
 
-// IHTTPAuctionHandlers — HTTP-only auction handlers for benchmarking
 type IHTTPAuctionHandlers interface {
 	GetAuctions(w http.ResponseWriter, r *http.Request)
 	GetAuctionByID(w http.ResponseWriter, r *http.Request)
@@ -26,7 +25,7 @@ type IHTTPAuctionHandlers interface {
 type HTTPAuctionHandlersDep struct {
 	Responder                IResponder               `validate:"required"`
 	AuctionCtrl              controllers.IAuctionCtrl `validate:"required"`
-	AuctionServiceHTTPClient interface{}              `validate:"required"` // HTTPAuctionServiceClient
+	AuctionServiceHTTPClient interface{}              `validate:"required"`
 }
 
 type HTTPAuctionHandlers struct {

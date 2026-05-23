@@ -32,7 +32,6 @@ func NewRedisClient(address string, db int, password string, maxRetries, poolSiz
 		WriteTimeout: writeTimeout,
 	})
 
-	// Проверяем соединение
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

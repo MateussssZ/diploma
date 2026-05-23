@@ -63,7 +63,7 @@ func NewRoute(dep RouteDep) (http.Handler, error) {
 	auction.HandleFunc("/subscribed", dep.AuctionHandlers.GetSubscribedAuctions).Methods(http.MethodGet)
 	auction.HandleFunc("/{auction_id}", dep.AuctionHandlers.GetAuctionByID).Methods(http.MethodGet)
 
-	// WebSocket endpoint (auth via query param ?token=...)
+	// WebSocket endpoint
 	ws := r.PathPrefix("/ws").Subrouter()
 	ws.HandleFunc("/auctions", dep.AuctionHandlers.ConnectAuction).Methods(http.MethodGet)
 

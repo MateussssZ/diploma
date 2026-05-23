@@ -49,7 +49,6 @@ func NewUserUsecase(dep UserUsecaseDep) (*UserUsecase, error) {
 	}, nil
 }
 
-// Register hashes password and stores the new user.
 func (u *UserUsecase) Register(ctx context.Context, req models.RegisterRequest) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -63,7 +62,6 @@ func (u *UserUsecase) Register(ctx context.Context, req models.RegisterRequest) 
 	return nil
 }
 
-// Login verifies credentials and returns access + refresh tokens.
 func (u *UserUsecase) Login(ctx context.Context, req models.LoginRequest) (*models.LoginResponse, error) {
 	user, err := u.userRepo.FindByLogin(ctx, req.Login)
 	if err != nil {
@@ -100,7 +98,6 @@ func (u *UserUsecase) Login(ctx context.Context, req models.LoginRequest) (*mode
 	}, nil
 }
 
-// Logout deletes the refresh token from the store.
 func (u *UserUsecase) Logout(ctx context.Context, refreshToken string) error {
 	if err := u.userRepo.DeleteRefreshToken(ctx, refreshToken); err != nil {
 		return errorspkg.NewRepoError("UserUsecase", "Logout", err)
@@ -108,7 +105,6 @@ func (u *UserUsecase) Logout(ctx context.Context, refreshToken string) error {
 	return nil
 }
 
-// Refresh validates the refresh token and issues new token pair.
 func (u *UserUsecase) Refresh(ctx context.Context, refreshToken string) (*models.RefreshResponse, error) {
 	userID, err := u.userRepo.FindRefreshToken(ctx, refreshToken)
 	if err != nil {

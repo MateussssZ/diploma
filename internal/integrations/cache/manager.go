@@ -38,7 +38,7 @@ func NewCacheManager(
 	}
 }
 
-// GetAuctionDetail retrieves auction detail with caching using cache-aside pattern.
+// Retrieves auction detail, using cache-aside pattern.
 func (cm *CacheManager) GetAuctionDetail(
 	ctx context.Context,
 	auctionID string,
@@ -79,7 +79,6 @@ func (cm *CacheManager) GetAuctionDetail(
 	return result, nil
 }
 
-// InvalidateAuctionCache removes all cache keys related to an auction.
 func (cm *CacheManager) InvalidateAuctionCache(ctx context.Context, auctionID string) {
 	if cm.isDisabled {
 		return
@@ -95,7 +94,6 @@ func (cm *CacheManager) InvalidateAuctionCache(ctx context.Context, auctionID st
 	}
 }
 
-// Close closes the Redis connection pool.
 func (cm *CacheManager) Close() error {
 	if cm.isDisabled {
 		return nil

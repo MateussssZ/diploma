@@ -7,7 +7,7 @@ const (
 	AuctionDetailKeyPattern = "auction:detail:%s" // auctionID
 )
 
-// Key generators
+// Key generator
 func AuctionDetailKey(auctionID string) string {
 	return fmt.Sprintf(AuctionDetailKeyPattern, auctionID)
 }

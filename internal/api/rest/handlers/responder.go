@@ -12,7 +12,7 @@ import (
 	"net/http"
 )
 
-// IResponder интерфейс вывода ответа(ошибок) клиенту
+// IResponder is interface for building response (error) output to the client
 type IResponder interface {
 	WriteError(ctx context.Context, w http.ResponseWriter, err error, opts ...WriteErrorOption)
 	WriteJSON(ctx context.Context, w http.ResponseWriter, body any, opts ...WriteErrorOption)
@@ -78,11 +78,9 @@ func (r *Responder) WriteError(ctx context.Context, w http.ResponseWriter, err e
 	var statusCode = http.StatusInternalServerError
 	var handledErr errorspkg.ErrorHandler
 
-	// проверка принадлежности ошибки к интерфейсу ErrorHandler для получения statusCode ошибки
 	if errors.As(err, &handledErr) {
 		statusCode = handledErr.HTTPStatus()
 	}
-	// приоритетная установка statusCode из конфига, если была передана соответствующая опция
 	if cfg.statusCode != 0 {
 		statusCode = cfg.statusCode
 	}
@@ -107,10 +105,8 @@ func (r *Responder) WriteJSON(ctx context.Context, w http.ResponseWriter, body a
 	r.write(ctx, w, http.StatusOK, body)
 }
 
-// WriteErrorOption тип - функция, изменяющая переданные настройки
 type WriteErrorOption func(*writeErrorCfg)
 
-// writeErrorCfg настройки для логирования и вывода ошибок
 type writeErrorCfg struct {
 	requestBody any
 	statusCode  int
@@ -145,13 +141,6 @@ func WithStatusCode(code int) WriteErrorOption {
 	}
 }
 
-// WithLogAsInfo опция логирования как INFO (без отправки в Sentry)
-func WithLogAsInfo() WriteErrorOption {
-	return func(c *writeErrorCfg) {
-		c.logAsInfo = true
-	}
-}
-
 // WithTags опция установки дополнительных атрибутов для логирования
 func WithTags(key string, val any) WriteErrorOption {
 	return func(c *writeErrorCfg) {
@@ -159,12 +148,5 @@ func WithTags(key string, val any) WriteErrorOption {
 			c.tags = make([]any, 0, 2)
 		}
 		c.tags = append(c.tags, key, val)
-	}
-}
-
-// WithError опция логирования ошибки в Sentry при вызове WriteJSON
-func WithError(err error) WriteErrorOption {
-	return func(c *writeErrorCfg) {
-		c.err = err
 	}
 }

@@ -20,7 +20,7 @@ import (
 	"apigateway/internal/utils"
 )
 
-// IWSManager is the interface implemented by wsmanager.WSManager.
+// IWSManager is the interface implemented by wsmanager.WSManager
 type IWSManager interface {
 	HandleConnection(ctx context.Context, conn *websocket.Conn, userID string)
 	ConnectionCount() int
@@ -178,8 +178,7 @@ func (h *AuctionHandlers) CreateAuction(w http.ResponseWriter, r *http.Request) 
 	h.responder.WriteJSON(ctx, w, models.CreateAuctionResponse{AuctionID: auctionID})
 }
 
-// ConnectAuction upgrades the HTTP connection to WebSocket and hands it off to WSManager.
-// Auth token is passed via the ?token= query parameter (standard practice for browser WS clients).
+// ConnectAuction upgrades the HTTP connection to WebSocket and hands it off to WSManager
 func (h *AuctionHandlers) ConnectAuction(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

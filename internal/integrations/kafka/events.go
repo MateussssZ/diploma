@@ -4,9 +4,6 @@ const (
 	EventBidPlaced = "bid_placed"
 )
 
-// BidEvent is the raw event published by AuctionService into the "new-bids" topic.
-// Field names match exactly what the Java service serialises.
-//
 //	{"bidId":1,"lotId":2,"bidderId":9,"amount":110000,"newCurrentPrice":110000,"placedAt":"2026-05-16T12:54:51"}
 type BidEvent struct {
 	BidID           int64  `json:"bidId"`

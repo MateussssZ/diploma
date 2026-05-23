@@ -26,7 +26,6 @@ func NewHTTPAuctionServiceClient(baseURL string) *HTTPAuctionServiceClient {
 	}
 }
 
-// Lot represents an auction lot from the AuctionService
 type Lot struct {
 	ID            int64   `json:"id"`
 	Title         string  `json:"title"`
@@ -41,7 +40,6 @@ type Lot struct {
 	EndsAt        string  `json:"endsAt"`
 }
 
-// PageResponse wraps paginated results
 type PageResponse struct {
 	Content       []Lot `json:"content"`
 	Page          int   `json:"page"`
@@ -80,7 +78,6 @@ type CurrentPriceResponse struct {
 	CurrentPrice float64 `json:"currentPrice"`
 }
 
-// GetLots fetches all lots with pagination
 func (c *HTTPAuctionServiceClient) GetLots(ctx context.Context, page int, size int) (*PageResponse, error) {
 	url := fmt.Sprintf("%s/api/lots?page=%d&size=%d", c.baseURL, page, size)
 
@@ -112,7 +109,6 @@ func (c *HTTPAuctionServiceClient) GetLots(ctx context.Context, page int, size i
 	return &result, nil
 }
 
-// GetLot fetches a single lot by ID
 func (c *HTTPAuctionServiceClient) GetLot(ctx context.Context, lotID int64) (*Lot, error) {
 	url := fmt.Sprintf("%s/api/lots/%d", c.baseURL, lotID)
 
@@ -144,7 +140,6 @@ func (c *HTTPAuctionServiceClient) GetLot(ctx context.Context, lotID int64) (*Lo
 	return &lot, nil
 }
 
-// CreateLot creates a new lot
 func (c *HTTPAuctionServiceClient) CreateLot(ctx context.Context, req CreateLotRequest) (int64, error) {
 	url := fmt.Sprintf("%s/api/lots", c.baseURL)
 
@@ -182,7 +177,6 @@ func (c *HTTPAuctionServiceClient) CreateLot(ctx context.Context, req CreateLotR
 	return lot.ID, nil
 }
 
-// PlaceBid places a bid on a lot
 func (c *HTTPAuctionServiceClient) PlaceBid(ctx context.Context, lotID int64, amount float64, bidderId int64) (*models.PlaceBidResponse, error) {
 	url := fmt.Sprintf("%s/api/bids/%d", c.baseURL, lotID)
 

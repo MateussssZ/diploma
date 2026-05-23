@@ -1,0 +1,12 @@
+RESTServer:
+  ListenPort: "8082"
+  ReadTimeout: "30s"
+  WriteTimeout: "30s"
+  ShutdownTimeout: "5s"
+
+AuctionService:
+  Address: "localhost:9090"
+
+AuthService:
+  SocketPath: "C:/go/src/templateservice/authservice.sock"
+  JWTSecret: "change-me-in-production-use-a-long-random-secret"

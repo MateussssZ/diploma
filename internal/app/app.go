@@ -175,13 +175,11 @@ func NewApp(ctx context.Context, dep Dep) (*App, error) {
 	}, nil
 }
 
-// Stop shuts down all resources in reverse order of creation.
 // Must be called after Start's errgroup has returned.
 func (a *App) Stop(ctx context.Context) {
 	a.logger.Info(ctx, "stopping application components")
 
 	// 1. Close all active WebSocket connections gracefully.
-	//    Uses a fresh timeout so it isn't affected by the already-cancelled signal ctx.
 	wsCtx, wsCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer wsCancel()
 	a.wsManager.Shutdown(wsCtx)

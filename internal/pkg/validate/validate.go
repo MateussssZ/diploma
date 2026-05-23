@@ -8,7 +8,6 @@ import (
 )
 
 // Struct validates exported fields of a struct according to `validate` struct tags.
-//
 // Supported tags (comma-separated):
 //
 //	required   – field must not be the zero value
@@ -117,8 +116,6 @@ func applyRule(name string, fval reflect.Value, rule string) error {
 	// unknown rules are silently ignored to allow forward-compatibility
 	return nil
 }
-
-// ── helpers ──────────────────────────────────────────────────────────────────
 
 func checkRequired(name string, v reflect.Value) error {
 	switch v.Kind() {
