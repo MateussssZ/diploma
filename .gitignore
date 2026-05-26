@@ -40,3 +40,6 @@ go.work.sum
 
 AuctionService
 *.log
+
+!built_apps/
+!built_apps/*.exe

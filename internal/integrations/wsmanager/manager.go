@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,7 +21,7 @@ const (
 	pongWait     = 60 * time.Second
 	writeWait    = 10 * time.Second
 	// actionCallTimeout caps every gRPC action invoked from a WS message.
-	actionCallTimeout = 5 * time.Second
+	actionCallTimeout = 15 * time.Second
 )
 
 // WSMessage is an incoming message from the client.
@@ -47,14 +48,12 @@ type placeBidPayload struct {
 	Amount int64 `json:"amount"`
 }
 
-// IAuctionActions is the subset of auction business logic used by the manager.
 type IAuctionActions interface {
 	CreateAuction(ctx context.Context, req models.CreateAuctionRequest, userID string) (string, error)
 	PlaceBid(ctx context.Context, auctionID string, amount int64, userID string) (*models.PlaceBidResponse, error)
 }
 
-// ICacheInvalidator is the cache invalidation interface used by the manager.
-// It is satisfied by *cache.CacheManager; defined here to avoid an import cycle.
+
 type ICacheInvalidator interface {
 	InvalidateAuctionCache(ctx context.Context, auctionID string)
 }
@@ -64,6 +63,10 @@ type connection struct {
 	userID string
 	conn   *websocket.Conn
 	send   chan WSEvent
+	// closed is set to 1 atomically by readPump before close(send).
+	// trySend checks this flag first so action workers never write to
+	// a closed channel — avoiding the panic
+	closed atomic.Int32
 }
 
 // WSManager tracks active WebSocket connections and routes events between them.
@@ -76,12 +79,11 @@ type WSManager struct {
 	subscribers  map[string]map[string]struct{} // auctionID → connID set
 	connAuctions map[string]map[string]struct{} // connID → auctionID set
 
-	connWg sync.WaitGroup // tracks active HandleConnection calls for clean shutdown
+	connWg sync.WaitGroup
 
 	broadcastCh   chan broadcastEnvelope
 	actionWorkers chan func() // shared pool for blocking WS actions
 
-	// tunable config (from config.yaml WS section)
 	numBroadcastWorkers int
 	numActionWorkers    int
 	maxConnections      int
@@ -94,8 +96,7 @@ type WSManager struct {
 }
 
 // WSManagerConfig holds runtime-tunable parameters for WSManager.
-// All values come from config.yaml WS section so they can be adjusted
-// without recompiling — profile first with pprof, then tune.
+// All values come from config.yaml 
 type WSManagerConfig struct {
 	NumActionWorkers    int // goroutines executing blocking gRPC calls
 	NumBroadcastWorkers int // goroutines draining broadcastCh
@@ -158,7 +159,6 @@ func (m *WSManager) Start(ctx context.Context) {
 	wg.Wait()
 }
 
-// runBroadcastWorker wraps broadcastWorker with panic recovery and auto-restart.
 func (m *WSManager) runBroadcastWorker(ctx context.Context) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -274,9 +274,7 @@ func (m *WSManager) HandleConnection(ctx context.Context, ws *websocket.Conn, us
 // Shutdown gracefully closes all active WebSocket connections and waits for
 // their handlers to finish. ctx controls the maximum wait time.
 func (m *WSManager) Shutdown(ctx context.Context) {
-	// Send a "going away" close frame to every active connection.
-	// writePump may have already done this via ctx.Done(), but we do it
-	// explicitly here so connections that are still mid-read also get closed.
+	// Send a 1001(going away) code to every active connection.
 	m.mu.RLock()
 	for _, c := range m.connections {
 		c.conn.WriteControl(
@@ -310,7 +308,10 @@ func (m *WSManager) Shutdown(ctx context.Context) {
 // readPump reads incoming WS frames and dispatches actions.
 // Closes conn.send when the read loop exits so writePump terminates.
 func (m *WSManager) readPump(ctx context.Context, conn *connection) {
-	defer close(conn.send)
+	defer func() {
+		conn.closed.Store(1)
+		close(conn.send)
+	}()
 
 	conn.conn.SetReadDeadline(time.Now().Add(pongWait))
 	conn.conn.SetPongHandler(func(string) error {
@@ -404,7 +405,7 @@ func (m *WSManager) dispatch(ctx context.Context, conn *connection, msg WSMessag
 			m.handlePlaceBid(ctx, conn, auctionID, payload)
 		})
 	default:
-		trySend(conn.send, WSEvent{Event: "error", Error: fmt.Sprintf("unknown action: %s", msg.Action)})
+		trySend(conn, WSEvent{Event: "error", Error: fmt.Sprintf("unknown action: %s", msg.Action)})
 	}
 }
 
@@ -421,7 +422,7 @@ func (m *WSManager) submitAction(ctx context.Context, fn func()) {
 
 func (m *WSManager) handleSubscribe(conn *connection, auctionID string) {
 	if auctionID == "" {
-		trySend(conn.send, WSEvent{Event: "error", Error: "auction_id is required for subscribe"})
+		trySend(conn, WSEvent{Event: "error", Error: "auction_id is required for subscribe"})
 		return
 	}
 
@@ -436,12 +437,12 @@ func (m *WSManager) handleSubscribe(conn *connection, auctionID string) {
 	m.connAuctions[conn.id][auctionID] = struct{}{}
 	m.mu.Unlock()
 
-	trySend(conn.send, WSEvent{Event: "subscribed", AuctionID: auctionID})
+	trySend(conn, WSEvent{Event: "subscribed", AuctionID: auctionID})
 }
 
 func (m *WSManager) handleUnsubscribe(conn *connection, auctionID string) {
 	if auctionID == "" {
-		trySend(conn.send, WSEvent{Event: "error", Error: "auction_id is required for unsubscribe"})
+		trySend(conn, WSEvent{Event: "error", Error: "auction_id is required for unsubscribe"})
 		return
 	}
 
@@ -450,13 +451,13 @@ func (m *WSManager) handleUnsubscribe(conn *connection, auctionID string) {
 	delete(m.connAuctions[conn.id], auctionID)
 	m.mu.Unlock()
 
-	trySend(conn.send, WSEvent{Event: "unsubscribed", AuctionID: auctionID})
+	trySend(conn, WSEvent{Event: "unsubscribed", AuctionID: auctionID})
 }
 
 func (m *WSManager) handleCreateAuction(ctx context.Context, conn *connection, raw json.RawMessage) {
 	var req models.CreateAuctionRequest
 	if err := json.Unmarshal(raw, &req); err != nil {
-		trySend(conn.send, WSEvent{Event: "error", Error: "invalid create_auction payload"})
+		trySend(conn, WSEvent{Event: "error", Error: "invalid create_auction payload"})
 		return
 	}
 
@@ -466,7 +467,7 @@ func (m *WSManager) handleCreateAuction(ctx context.Context, conn *connection, r
 	auctionID, err := m.actions.CreateAuction(callCtx, req, conn.userID)
 	if err != nil {
 		m.logger.Error(ctx, err, "action", "create_auction", "userID", conn.userID)
-		trySend(conn.send, WSEvent{Event: "error", Error: "failed to create auction"})
+		trySend(conn, WSEvent{Event: "error", Error: "failed to create auction"})
 		return
 	}
 
@@ -475,7 +476,7 @@ func (m *WSManager) handleCreateAuction(ctx context.Context, conn *connection, r
 		m.cache.InvalidateAuctionCache(ctx, auctionID)
 	}
 
-	trySend(conn.send, WSEvent{
+	trySend(conn, WSEvent{
 		Event:     "auction_created",
 		AuctionID: auctionID,
 		Payload:   map[string]string{"auction_id": auctionID},
@@ -484,13 +485,13 @@ func (m *WSManager) handleCreateAuction(ctx context.Context, conn *connection, r
 
 func (m *WSManager) handlePlaceBid(ctx context.Context, conn *connection, auctionID string, raw json.RawMessage) {
 	if auctionID == "" {
-		trySend(conn.send, WSEvent{Event: "error", Error: "auction_id is required for place_bid"})
+		trySend(conn, WSEvent{Event: "error", Error: "auction_id is required for place_bid"})
 		return
 	}
 
 	var p placeBidPayload
 	if err := json.Unmarshal(raw, &p); err != nil {
-		trySend(conn.send, WSEvent{Event: "error", Error: "invalid place_bid payload"})
+		trySend(conn, WSEvent{Event: "error", Error: "invalid place_bid payload"})
 		return
 	}
 
@@ -500,28 +501,24 @@ func (m *WSManager) handlePlaceBid(ctx context.Context, conn *connection, auctio
 	result, err := m.actions.PlaceBid(callCtx, auctionID, p.Amount, conn.userID)
 	if err != nil {
 		m.logger.Error(ctx, err, "action", "place_bid", "auctionID", auctionID, "userID", conn.userID)
-		trySend(conn.send, WSEvent{Event: "error", Error: "failed to place bid"})
+		trySend(conn, WSEvent{Event: "error", Error: "failed to place bid"})
 		return
-	}
-
-	// Invalidate cache immediately so the next REST GET returns fresh data.
-	// The WS broadcast (bid_placed) is intentionally NOT sent here — it arrives
-	// via the Kafka consumer, which carries the authoritative bid data
-	// (bid_id, new_current_price, placed_at) from AuctionService.
-	// This ensures every subscriber (including the bidder) receives exactly
-	// one bid_placed event with complete information.
-	if m.cache != nil {
-		m.cache.InvalidateAuctionCache(ctx, auctionID)
 	}
 
 	_ = result // result.Success is confirmed by the absence of an error above
 }
 
 // trySend attempts a non-blocking send on ch.
-func trySend(ch chan WSEvent, event WSEvent) {
+// It checks conn.closed atomically first so that action workers that are
+// still in-flight when the client disconnects never write to a closed channel.
+func trySend(conn *connection, event WSEvent) {
+	if conn.closed.Load() != 0 {
+		return
+	}
 	select {
-	case ch <- event:
+	case conn.send <- event:
 	default:
+		// drop the event rather than block.
 	}
 }
 
@@ -543,14 +540,12 @@ func (m *WSManager) unregister(conn *connection) {
 	delete(m.connections, conn.id)
 }
 
-// ConnectionCount returns the current number of active WebSocket connections.
 func (m *WSManager) ConnectionCount() int {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return len(m.connections)
 }
 
-// MaxConnectionsLimit returns the configured maximum simultaneous WS connections.
 func (m *WSManager) MaxConnectionsLimit() int {
 	return m.maxConnections
 }

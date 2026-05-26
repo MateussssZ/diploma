@@ -5,6 +5,7 @@ import (
 	"apigateway/internal/pkg/validate"
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 )
@@ -25,6 +26,7 @@ type Options struct {
 
 type Server struct {
 	srvHTTP         *http.Server
+	listenAddr      string
 	shutdownTimeout time.Duration
 }
 
@@ -38,7 +40,8 @@ func NewServer(opt Options, dep Dependencies) (*Server, error) {
 
 	return &Server{
 		srvHTTP: &http.Server{
-			Addr:              fmt.Sprintf(":%s", opt.ListenPort),
+			// Addr is intentionally left empty — we bind via explicit net.Listener
+			// in Start() so we can control TCP keep-alive and SO_REUSEADDR tuning.
 			Handler:           dep.Handler,
 			ReadTimeout:       opt.ReadTimeout,
 			ReadHeaderTimeout: opt.ReadHeaderTimeout,
@@ -46,15 +49,23 @@ func NewServer(opt Options, dep Dependencies) (*Server, error) {
 			IdleTimeout:       opt.IdleTimeout,
 			MaxHeaderBytes:    opt.MaxHeaderBytes,
 		},
+		listenAddr:      fmt.Sprintf(":%s", opt.ListenPort),
 		shutdownTimeout: opt.ShutdownTimeout,
 	}, nil
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	errChan := make(chan error)
+	lc := net.ListenConfig{
+		KeepAlive: 60 * time.Second, // detect dead connections faster than default 15m
+	}
+	ln, err := lc.Listen(ctx, "tcp", s.listenAddr)
+	if err != nil {
+		return fmt.Errorf("rest server listen %s: %w", s.listenAddr, err)
+	}
 
+	errChan := make(chan error, 1)
 	go func() {
-		errChan <- s.srvHTTP.ListenAndServe()
+		errChan <- s.srvHTTP.Serve(ln)
 	}()
 
 	select {

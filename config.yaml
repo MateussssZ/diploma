@@ -9,10 +9,10 @@ GRPCServer:
 
 RESTServer:
   ListenPort: "8081"
-  ReadTimeout: 30s   # increased: pprof CPU profile needs up to 30s window
-  WriteTimeout: 30s  # increased: pprof response can be large
+  ReadTimeout: 30s  
+  WriteTimeout: 30s  
   ShutdownTimeout: 5s
-  ReadHeaderTimeout: 2s
+  ReadHeaderTimeout: 15s 
   IdleTimeout: 30s
   MaxHeaderBytes: 8192
   EnablePprof: true   # set to false in production
@@ -38,19 +38,16 @@ CacheConfig:
 
 Kafka:
   Brokers:
-    - "localhost:9092"  # kafka advertised on host via 9092 port mapping
-  Topic: "new-bids"    # AuctionService publishes bid events here
+    - "localhost:9093"  
+  Topic: "new-bids" 
   GroupID: "api-gateway"
 
 # WebSocket manager tuning.
 # NumActionWorkers: goroutines for blocking gRPC calls (PlaceBid/CreateAuction).
-#   Formula: target_bid_rps / (1000 / grpc_p99_ms)
-#   Profile via /debug/pprof/goroutine to verify workers aren't saturated.
 # NumBroadcastWorkers: goroutines draining broadcastCh.
-#   Increase if ws_broadcast_dropped_total rises under sustained load.
 WS:
-  NumActionWorkers: 4        # adjust after profiling; see formula in config/config.go
+  NumActionWorkers: 64       # было 4 — увеличено для 5000 пользователей: target_bid_rps / (1000 / grpc_p99_ms)
   NumBroadcastWorkers: 8
   BroadcastBufSize: 4096
-  ActionQueueSize: 1024
+  ActionQueueSize: 8192      # было 1024 — увеличено пропорционально воркерам
   MaxConnections: 50000
