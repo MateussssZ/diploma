@@ -25,6 +25,7 @@
       - "8083:8083"
     volumes:
       - sockets:/sockets
+      - ./config.docker.yaml:/app/config.yaml:ro
     depends_on:
       auth-postgres:
         condition: service_healthy

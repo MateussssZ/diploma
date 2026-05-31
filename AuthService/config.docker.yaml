@@ -1,0 +1,22 @@
+Logger:
+  Level: 0
+
+HTTPServer:
+  Address: ":8083"
+
+GRPCServer:
+  SocketPath: "/sockets/authservice.sock"
+  MaxRecvMsgSize: 8000000
+  MaxSendMsgSize: 8000000
+
+Postgres:
+  User: "authuser"
+  Password: "authpass"
+  Host: "auth-postgres"
+  Port: 5432
+  Database: "authdb"
+
+Auth:
+  JWTSecret: "change-me-in-production-use-a-long-random-secret"
+  AccessTTL: 15m
+  RefreshTTL: 168h
