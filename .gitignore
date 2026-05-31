@@ -38,8 +38,11 @@ go.work.sum
 # Credentials
 # credentials.yaml
 
-AuctionService
+AuctionService/
 *.log
 
 !built_apps/
 !built_apps/*.exe
+
+!api/grpc/auctionservice/
+!api/grpc/auctionservice/*.go

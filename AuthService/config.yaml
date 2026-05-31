@@ -5,7 +5,8 @@ HTTPServer:
   Address: ":8082"
 
 GRPCServer:
-  SocketPath: "C:/go/src/templateservice/authservice.sock"
+  SocketPath: "/home/admin-test/dev/diploma/authservice.sock"
+  #SocketPath: "C:/go/src/templateservice/authservice.sock" для Windows
   MaxRecvMsgSize: 8000000
   MaxSendMsgSize: 8000000
 
