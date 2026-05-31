@@ -1,38 +1,7 @@
-version: "3.9"
-
-services:
-  apigateway:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: apigateway
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "8081:8081"
-      - "9091:9091"
-    volumes:
-      - ./config.yaml:/config.yaml:ro
-      - ./credentials.yaml:/credentials.yaml:ro
-      - apigateway_logs:/logs
-    environment:
-      APIGATEWAY_POSTGRES_HOST: postgres
-      APIGATEWAY_KAFKA_BROKERS: "kafka:9092"
-      APIGATEWAY_AUCTIONSERVICE_ADDRESS: "auction-service:9090"
-    networks:
-      - default
-      - auctionservice_default
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-
+﻿services:
   redis:
     image: redis:7-alpine
-    container_name: apigateway_redis
+    container_name: diploma_redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -45,23 +14,38 @@ services:
       timeout: 5s
       retries: 5
 
-  postgres:
-    image: postgres:16-alpine
-    container_name: apigateway_postgres
+  main-svc:
+    build:
+      context: .
+      dockerfile: Dockerfile.main_svc
+    container_name: main-svc
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: postgres
     ports:
-      - "5433:5432"
+      - "8081:8081"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - sockets:/sockets
+      - ./config.docker.yaml:/app/config.yaml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - default
+      - auctionservice_default
+
+  polling-svc:
+    build:
+      context: .
+      dockerfile: polling_svc/Dockerfile
+    container_name: polling-svc
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    volumes:
+      - sockets:/sockets
+      - ./polling_svc/config.docker.yaml:/app/config.yaml:ro
+    networks:
+      - default
+      - auctionservice_default
 
 networks:
   default: {}
@@ -69,6 +53,7 @@ networks:
     external: true
 
 volumes:
-  postgres_data:
   redis_data:
-  apigateway_logs:
+  sockets:
+    external: true
+    name: authservice_sockets

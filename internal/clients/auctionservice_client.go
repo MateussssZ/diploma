@@ -7,13 +7,15 @@ import (
 )
 
 type AuctionServiceClient struct {
-	LotClient auctionpb.LotGrpcServiceClient
-	BidClient auctionpb.BidGrpcServiceClient
+	LotClient          auctionpb.LotGrpcServiceClient
+	BidClient          auctionpb.BidGrpcServiceClient
+	SubscriptionClient auctionpb.SubscriptionGrpcServiceClient
 }
 
 func NewAuctionServiceClient(conn *grpc.ClientConn) *AuctionServiceClient {
 	return &AuctionServiceClient{
-		LotClient: auctionpb.NewLotGrpcServiceClient(conn),
-		BidClient: auctionpb.NewBidGrpcServiceClient(conn),
+		LotClient:          auctionpb.NewLotGrpcServiceClient(conn),
+		BidClient:          auctionpb.NewBidGrpcServiceClient(conn),
+		SubscriptionClient: auctionpb.NewSubscriptionGrpcServiceClient(conn),
 	}
 }

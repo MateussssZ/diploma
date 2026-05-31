@@ -1,6 +1,4 @@
-version: "3.9"
-
-services:
+﻿services:
   auth-postgres:
     image: postgres:16-alpine
     container_name: auth-postgres
@@ -19,5 +17,18 @@ services:
       timeout: 5s
       retries: 5
 
+  auth-service:
+    build: .
+    container_name: auth-service
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    volumes:
+      - sockets:/sockets
+    depends_on:
+      auth-postgres:
+        condition: service_healthy
+
 volumes:
   auth-postgres-data:
+  sockets:

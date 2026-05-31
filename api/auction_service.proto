@@ -57,11 +57,13 @@ message GetLotRequest {
 }
 
 message GetLotsRequest {
-  int32  page            = 1;
-  int32  size            = 2;
-  string sort            = 3;  // field name, e.g. "createdAt"
-  bool   filter_by_status = 4;
-  LotStatus status       = 5;
+  int32  page              = 1;
+  int32  size              = 2;
+  string sort              = 3;  // field name, e.g. "createdAt"
+  bool   filter_by_status  = 4;
+  LotStatus status         = 5;
+  bool   filter_by_seller  = 6;
+  int64  seller_id         = 7;
 }
 
 message GetLotsResponse {
@@ -129,4 +131,34 @@ service LotGrpcService {
 service BidGrpcService {
   rpc PlaceBid        (PlaceBidRequest)       returns (BidProto);
   rpc GetCurrentPrice  (GetCurrentPriceRequest) returns (CurrentPriceProto);
+}
+
+// ─── Subscription Messages ────────────────────────────────────────────────────
+
+message SubscribeRequest {
+  int64 user_id = 1;
+  int64 lot_id  = 2;
+}
+
+message SubscribeResponse {}
+
+message UnsubscribeRequest {
+  int64 user_id = 1;
+  int64 lot_id  = 2;
+}
+
+message UnsubscribeResponse {}
+
+message GetSubscribedLotsRequest {
+  int64 user_id = 1;
+}
+
+message GetSubscribedLotsResponse {
+  repeated LotShort lots = 1;
+}
+
+service SubscriptionGrpcService {
+  rpc Subscribe           (SubscribeRequest)           returns (SubscribeResponse);
+  rpc Unsubscribe         (UnsubscribeRequest)         returns (UnsubscribeResponse);
+  rpc GetSubscribedLots   (GetSubscribedLotsRequest)   returns (GetSubscribedLotsResponse);
 }

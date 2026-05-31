@@ -99,16 +99,19 @@ func (u *AuctionUsecase) GetAuctionByID(ctx context.Context, auctionID string) (
 }
 
 func (u *AuctionUsecase) GetUserAuctions(ctx context.Context, userID string) (*models.AuctionListResponse, error) {
-	// TODO: AuctionService пока не поддерживает фильтрацию по продавцу —
-	// запрашиваем активные лоты как временная заглушка
+	sellerID, err := strconv.ParseInt(userID, 10, 64)
+	if err != nil {
+		return nil, errorspkg.NewValidationError("AuctionUsecase.GetUserAuctions", fmt.Errorf("invalid userID: %w", err))
+	}
+
 	callCtx, cancel := context.WithTimeout(ctx, grpcCallTimeout)
 	defer cancel()
 
 	resp, err := u.auctionClient.LotClient.GetLots(callCtx, &auctionpb.GetLotsRequest{
 		Page:           0,
 		Size:           100,
-		FilterByStatus: true,
-		Status:         auctionpb.LotStatus_ACTIVE,
+		FilterBySeller: true,
+		SellerId:       sellerID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("AuctionUsecase.GetUserAuctions: %w", err)
@@ -132,9 +135,34 @@ func (u *AuctionUsecase) GetUserAuctions(ctx context.Context, userID string) (*m
 }
 
 func (u *AuctionUsecase) GetSubscribedAuctions(ctx context.Context, userID string) (*models.AuctionListResponse, error) {
-	// TODO: AuctionService пока не поддерживает подписки —
-	// временная заглушка, возвращает активные лоты
-	return u.GetAuctions(ctx, 0, 50)
+	uid, err := strconv.ParseInt(userID, 10, 64)
+	if err != nil {
+		return nil, errorspkg.NewValidationError("AuctionUsecase.GetSubscribedAuctions", fmt.Errorf("invalid userID: %w", err))
+	}
+
+	callCtx, cancel := context.WithTimeout(ctx, grpcCallTimeout)
+	defer cancel()
+
+	resp, err := u.auctionClient.SubscriptionClient.GetSubscribedLots(callCtx, &auctionpb.GetSubscribedLotsRequest{
+		UserId: uid,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("AuctionUsecase.GetSubscribedAuctions: %w", err)
+	}
+
+	out := &models.AuctionListResponse{}
+	for _, lot := range resp.Lots {
+		out.Auctions = append(out.Auctions, models.AuctionBrief{
+			AuctionID:    strconv.FormatInt(lot.Id, 10),
+			Title:        lot.Title,
+			CurrentPrice: parseDecimalPrice(lot.CurrentPrice),
+			Status:       lot.Status.String(),
+		})
+	}
+	out.TotalItems = int32(len(out.Auctions))
+	out.PageSize = int32(len(out.Auctions))
+	out.TotalPages = 1
+	return out, nil
 }
 
 func (u *AuctionUsecase) CreateAuction(ctx context.Context, req models.CreateAuctionRequest, userID string) (string, error) {

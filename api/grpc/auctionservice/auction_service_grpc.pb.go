@@ -411,3 +411,182 @@ var BidGrpcService_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "api/auction_service.proto",
 }
+
+const (
+	SubscriptionGrpcService_Subscribe_FullMethodName         = "/auctionservice.SubscriptionGrpcService/Subscribe"
+	SubscriptionGrpcService_Unsubscribe_FullMethodName       = "/auctionservice.SubscriptionGrpcService/Unsubscribe"
+	SubscriptionGrpcService_GetSubscribedLots_FullMethodName = "/auctionservice.SubscriptionGrpcService/GetSubscribedLots"
+)
+
+// SubscriptionGrpcServiceClient is the client API for SubscriptionGrpcService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type SubscriptionGrpcServiceClient interface {
+	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (*SubscribeResponse, error)
+	Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error)
+	GetSubscribedLots(ctx context.Context, in *GetSubscribedLotsRequest, opts ...grpc.CallOption) (*GetSubscribedLotsResponse, error)
+}
+
+type subscriptionGrpcServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewSubscriptionGrpcServiceClient(cc grpc.ClientConnInterface) SubscriptionGrpcServiceClient {
+	return &subscriptionGrpcServiceClient{cc}
+}
+
+func (c *subscriptionGrpcServiceClient) Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (*SubscribeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SubscribeResponse)
+	err := c.cc.Invoke(ctx, SubscriptionGrpcService_Subscribe_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *subscriptionGrpcServiceClient) Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UnsubscribeResponse)
+	err := c.cc.Invoke(ctx, SubscriptionGrpcService_Unsubscribe_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *subscriptionGrpcServiceClient) GetSubscribedLots(ctx context.Context, in *GetSubscribedLotsRequest, opts ...grpc.CallOption) (*GetSubscribedLotsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetSubscribedLotsResponse)
+	err := c.cc.Invoke(ctx, SubscriptionGrpcService_GetSubscribedLots_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// SubscriptionGrpcServiceServer is the server API for SubscriptionGrpcService service.
+// All implementations must embed UnimplementedSubscriptionGrpcServiceServer
+// for forward compatibility.
+type SubscriptionGrpcServiceServer interface {
+	Subscribe(context.Context, *SubscribeRequest) (*SubscribeResponse, error)
+	Unsubscribe(context.Context, *UnsubscribeRequest) (*UnsubscribeResponse, error)
+	GetSubscribedLots(context.Context, *GetSubscribedLotsRequest) (*GetSubscribedLotsResponse, error)
+	mustEmbedUnimplementedSubscriptionGrpcServiceServer()
+}
+
+// UnimplementedSubscriptionGrpcServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedSubscriptionGrpcServiceServer struct{}
+
+func (UnimplementedSubscriptionGrpcServiceServer) Subscribe(context.Context, *SubscribeRequest) (*SubscribeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Subscribe not implemented")
+}
+func (UnimplementedSubscriptionGrpcServiceServer) Unsubscribe(context.Context, *UnsubscribeRequest) (*UnsubscribeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Unsubscribe not implemented")
+}
+func (UnimplementedSubscriptionGrpcServiceServer) GetSubscribedLots(context.Context, *GetSubscribedLotsRequest) (*GetSubscribedLotsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSubscribedLots not implemented")
+}
+func (UnimplementedSubscriptionGrpcServiceServer) mustEmbedUnimplementedSubscriptionGrpcServiceServer() {
+}
+func (UnimplementedSubscriptionGrpcServiceServer) testEmbeddedByValue() {}
+
+// UnsafeSubscriptionGrpcServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to SubscriptionGrpcServiceServer will
+// result in compilation errors.
+type UnsafeSubscriptionGrpcServiceServer interface {
+	mustEmbedUnimplementedSubscriptionGrpcServiceServer()
+}
+
+func RegisterSubscriptionGrpcServiceServer(s grpc.ServiceRegistrar, srv SubscriptionGrpcServiceServer) {
+	// If the following call panics, it indicates UnimplementedSubscriptionGrpcServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&SubscriptionGrpcService_ServiceDesc, srv)
+}
+
+func _SubscriptionGrpcService_Subscribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubscribeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SubscriptionGrpcServiceServer).Subscribe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SubscriptionGrpcService_Subscribe_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SubscriptionGrpcServiceServer).Subscribe(ctx, req.(*SubscribeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SubscriptionGrpcService_Unsubscribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnsubscribeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SubscriptionGrpcServiceServer).Unsubscribe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SubscriptionGrpcService_Unsubscribe_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SubscriptionGrpcServiceServer).Unsubscribe(ctx, req.(*UnsubscribeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SubscriptionGrpcService_GetSubscribedLots_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSubscribedLotsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SubscriptionGrpcServiceServer).GetSubscribedLots(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SubscriptionGrpcService_GetSubscribedLots_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SubscriptionGrpcServiceServer).GetSubscribedLots(ctx, req.(*GetSubscribedLotsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// SubscriptionGrpcService_ServiceDesc is the grpc.ServiceDesc for SubscriptionGrpcService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var SubscriptionGrpcService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "auctionservice.SubscriptionGrpcService",
+	HandlerType: (*SubscriptionGrpcServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Subscribe",
+			Handler:    _SubscriptionGrpcService_Subscribe_Handler,
+		},
+		{
+			MethodName: "Unsubscribe",
+			Handler:    _SubscriptionGrpcService_Unsubscribe_Handler,
+		},
+		{
+			MethodName: "GetSubscribedLots",
+			Handler:    _SubscriptionGrpcService_GetSubscribedLots_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "api/auction_service.proto",
+}

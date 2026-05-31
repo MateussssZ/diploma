@@ -423,6 +423,8 @@ type GetLotsRequest struct {
 	Sort           string                 `protobuf:"bytes,3,opt,name=sort,proto3" json:"sort,omitempty"` // field name, e.g. "createdAt"
 	FilterByStatus bool                   `protobuf:"varint,4,opt,name=filter_by_status,json=filterByStatus,proto3" json:"filter_by_status,omitempty"`
 	Status         LotStatus              `protobuf:"varint,5,opt,name=status,proto3,enum=auctionservice.LotStatus" json:"status,omitempty"`
+	FilterBySeller bool                   `protobuf:"varint,6,opt,name=filter_by_seller,json=filterBySeller,proto3" json:"filter_by_seller,omitempty"`
+	SellerId       int64                  `protobuf:"varint,7,opt,name=seller_id,json=sellerId,proto3" json:"seller_id,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -490,6 +492,20 @@ func (x *GetLotsRequest) GetStatus() LotStatus {
 		return x.Status
 	}
 	return LotStatus_DRAFT
+}
+
+func (x *GetLotsRequest) GetFilterBySeller() bool {
+	if x != nil {
+		return x.FilterBySeller
+	}
+	return false
+}
+
+func (x *GetLotsRequest) GetSellerId() int64 {
+	if x != nil {
+		return x.SellerId
+	}
+	return 0
 }
 
 type GetLotsResponse struct {
@@ -989,6 +1005,270 @@ func (x *CurrentPriceProto) GetCurrentPrice() string {
 	return ""
 }
 
+type SubscribeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	LotId         int64                  `protobuf:"varint,2,opt,name=lot_id,json=lotId,proto3" json:"lot_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubscribeRequest) Reset() {
+	*x = SubscribeRequest{}
+	mi := &file_api_auction_service_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubscribeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubscribeRequest) ProtoMessage() {}
+
+func (x *SubscribeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubscribeRequest.ProtoReflect.Descriptor instead.
+func (*SubscribeRequest) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *SubscribeRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *SubscribeRequest) GetLotId() int64 {
+	if x != nil {
+		return x.LotId
+	}
+	return 0
+}
+
+type SubscribeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubscribeResponse) Reset() {
+	*x = SubscribeResponse{}
+	mi := &file_api_auction_service_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubscribeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubscribeResponse) ProtoMessage() {}
+
+func (x *SubscribeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubscribeResponse.ProtoReflect.Descriptor instead.
+func (*SubscribeResponse) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_proto_rawDescGZIP(), []int{14}
+}
+
+type UnsubscribeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	LotId         int64                  `protobuf:"varint,2,opt,name=lot_id,json=lotId,proto3" json:"lot_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnsubscribeRequest) Reset() {
+	*x = UnsubscribeRequest{}
+	mi := &file_api_auction_service_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnsubscribeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnsubscribeRequest) ProtoMessage() {}
+
+func (x *UnsubscribeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnsubscribeRequest.ProtoReflect.Descriptor instead.
+func (*UnsubscribeRequest) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *UnsubscribeRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *UnsubscribeRequest) GetLotId() int64 {
+	if x != nil {
+		return x.LotId
+	}
+	return 0
+}
+
+type UnsubscribeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnsubscribeResponse) Reset() {
+	*x = UnsubscribeResponse{}
+	mi := &file_api_auction_service_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnsubscribeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnsubscribeResponse) ProtoMessage() {}
+
+func (x *UnsubscribeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnsubscribeResponse.ProtoReflect.Descriptor instead.
+func (*UnsubscribeResponse) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_proto_rawDescGZIP(), []int{16}
+}
+
+type GetSubscribedLotsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSubscribedLotsRequest) Reset() {
+	*x = GetSubscribedLotsRequest{}
+	mi := &file_api_auction_service_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSubscribedLotsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSubscribedLotsRequest) ProtoMessage() {}
+
+func (x *GetSubscribedLotsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSubscribedLotsRequest.ProtoReflect.Descriptor instead.
+func (*GetSubscribedLotsRequest) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *GetSubscribedLotsRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+type GetSubscribedLotsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Lots          []*LotShort            `protobuf:"bytes,1,rep,name=lots,proto3" json:"lots,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSubscribedLotsResponse) Reset() {
+	*x = GetSubscribedLotsResponse{}
+	mi := &file_api_auction_service_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSubscribedLotsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSubscribedLotsResponse) ProtoMessage() {}
+
+func (x *GetSubscribedLotsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_auction_service_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSubscribedLotsResponse.ProtoReflect.Descriptor instead.
+func (*GetSubscribedLotsResponse) Descriptor() ([]byte, []int) {
+	return file_api_auction_service_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *GetSubscribedLotsResponse) GetLots() []*LotShort {
+	if x != nil {
+		return x.Lots
+	}
+	return nil
+}
+
 var File_api_auction_service_proto protoreflect.FileDescriptor
 
 const file_api_auction_service_proto_rawDesc = "" +
@@ -1025,13 +1305,15 @@ const file_api_auction_service_proto_rawDesc = "" +
 	"\tseller_id\x18\x06 \x01(\x03R\bsellerId\x12\x17\n" +
 	"\aends_at\x18\a \x01(\tR\x06endsAt\"\x1f\n" +
 	"\rGetLotRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\"\xa9\x01\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"\xf0\x01\n" +
 	"\x0eGetLotsRequest\x12\x12\n" +
 	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x12\n" +
 	"\x04size\x18\x02 \x01(\x05R\x04size\x12\x12\n" +
 	"\x04sort\x18\x03 \x01(\tR\x04sort\x12(\n" +
 	"\x10filter_by_status\x18\x04 \x01(\bR\x0efilterByStatus\x121\n" +
-	"\x06status\x18\x05 \x01(\x0e2\x19.auctionservice.LotStatusR\x06status\"\xdf\x01\n" +
+	"\x06status\x18\x05 \x01(\x0e2\x19.auctionservice.LotStatusR\x06status\x12(\n" +
+	"\x10filter_by_seller\x18\x06 \x01(\bR\x0efilterBySeller\x12\x1b\n" +
+	"\tseller_id\x18\a \x01(\x03R\bsellerId\"\xdf\x01\n" +
 	"\x0fGetLotsResponse\x122\n" +
 	"\acontent\x18\x01 \x03(\v2\x18.auctionservice.LotShortR\acontent\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x12\n" +
@@ -1075,7 +1357,19 @@ const file_api_auction_service_proto_rawDesc = "" +
 	"\x06lot_id\x18\x01 \x01(\x03R\x05lotId\"O\n" +
 	"\x11CurrentPriceProto\x12\x15\n" +
 	"\x06lot_id\x18\x01 \x01(\x03R\x05lotId\x12#\n" +
-	"\rcurrent_price\x18\x02 \x01(\tR\fcurrentPrice*.\n" +
+	"\rcurrent_price\x18\x02 \x01(\tR\fcurrentPrice\"B\n" +
+	"\x10SubscribeRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x15\n" +
+	"\x06lot_id\x18\x02 \x01(\x03R\x05lotId\"\x13\n" +
+	"\x11SubscribeResponse\"D\n" +
+	"\x12UnsubscribeRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x15\n" +
+	"\x06lot_id\x18\x02 \x01(\x03R\x05lotId\"\x15\n" +
+	"\x13UnsubscribeResponse\"3\n" +
+	"\x18GetSubscribedLotsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\"I\n" +
+	"\x19GetSubscribedLotsResponse\x12,\n" +
+	"\x04lots\x18\x01 \x03(\v2\x18.auctionservice.LotShortR\x04lots*.\n" +
 	"\tLotStatus\x12\t\n" +
 	"\x05DRAFT\x10\x00\x12\n" +
 	"\n" +
@@ -1090,7 +1384,11 @@ const file_api_auction_service_proto_rawDesc = "" +
 	"\tDeleteLot\x12 .auctionservice.DeleteLotRequest\x1a!.auctionservice.DeleteLotResponse2\xb5\x01\n" +
 	"\x0eBidGrpcService\x12E\n" +
 	"\bPlaceBid\x12\x1f.auctionservice.PlaceBidRequest\x1a\x18.auctionservice.BidProto\x12\\\n" +
-	"\x0fGetCurrentPrice\x12&.auctionservice.GetCurrentPriceRequest\x1a!.auctionservice.CurrentPriceProtoBS\n" +
+	"\x0fGetCurrentPrice\x12&.auctionservice.GetCurrentPriceRequest\x1a!.auctionservice.CurrentPriceProto2\xad\x02\n" +
+	"\x17SubscriptionGrpcService\x12P\n" +
+	"\tSubscribe\x12 .auctionservice.SubscribeRequest\x1a!.auctionservice.SubscribeResponse\x12V\n" +
+	"\vUnsubscribe\x12\".auctionservice.UnsubscribeRequest\x1a#.auctionservice.UnsubscribeResponse\x12h\n" +
+	"\x11GetSubscribedLots\x12(.auctionservice.GetSubscribedLotsRequest\x1a).auctionservice.GetSubscribedLotsResponseBS\n" +
 	"\x1cru.auctionservice.grpc.protoP\x01Z1apigateway/api/grpc/auctionservice;auctionserviceb\x06proto3"
 
 var (
@@ -1106,22 +1404,28 @@ func file_api_auction_service_proto_rawDescGZIP() []byte {
 }
 
 var file_api_auction_service_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_api_auction_service_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_api_auction_service_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_api_auction_service_proto_goTypes = []any{
-	(LotStatus)(0),                 // 0: auctionservice.LotStatus
-	(*LotFull)(nil),                // 1: auctionservice.LotFull
-	(*LotShort)(nil),               // 2: auctionservice.LotShort
-	(*CreateLotRequest)(nil),       // 3: auctionservice.CreateLotRequest
-	(*GetLotRequest)(nil),          // 4: auctionservice.GetLotRequest
-	(*GetLotsRequest)(nil),         // 5: auctionservice.GetLotsRequest
-	(*GetLotsResponse)(nil),        // 6: auctionservice.GetLotsResponse
-	(*UpdateLotRequest)(nil),       // 7: auctionservice.UpdateLotRequest
-	(*DeleteLotRequest)(nil),       // 8: auctionservice.DeleteLotRequest
-	(*DeleteLotResponse)(nil),      // 9: auctionservice.DeleteLotResponse
-	(*PlaceBidRequest)(nil),        // 10: auctionservice.PlaceBidRequest
-	(*BidProto)(nil),               // 11: auctionservice.BidProto
-	(*GetCurrentPriceRequest)(nil), // 12: auctionservice.GetCurrentPriceRequest
-	(*CurrentPriceProto)(nil),      // 13: auctionservice.CurrentPriceProto
+	(LotStatus)(0),                    // 0: auctionservice.LotStatus
+	(*LotFull)(nil),                   // 1: auctionservice.LotFull
+	(*LotShort)(nil),                  // 2: auctionservice.LotShort
+	(*CreateLotRequest)(nil),          // 3: auctionservice.CreateLotRequest
+	(*GetLotRequest)(nil),             // 4: auctionservice.GetLotRequest
+	(*GetLotsRequest)(nil),            // 5: auctionservice.GetLotsRequest
+	(*GetLotsResponse)(nil),           // 6: auctionservice.GetLotsResponse
+	(*UpdateLotRequest)(nil),          // 7: auctionservice.UpdateLotRequest
+	(*DeleteLotRequest)(nil),          // 8: auctionservice.DeleteLotRequest
+	(*DeleteLotResponse)(nil),         // 9: auctionservice.DeleteLotResponse
+	(*PlaceBidRequest)(nil),           // 10: auctionservice.PlaceBidRequest
+	(*BidProto)(nil),                  // 11: auctionservice.BidProto
+	(*GetCurrentPriceRequest)(nil),    // 12: auctionservice.GetCurrentPriceRequest
+	(*CurrentPriceProto)(nil),         // 13: auctionservice.CurrentPriceProto
+	(*SubscribeRequest)(nil),          // 14: auctionservice.SubscribeRequest
+	(*SubscribeResponse)(nil),         // 15: auctionservice.SubscribeResponse
+	(*UnsubscribeRequest)(nil),        // 16: auctionservice.UnsubscribeRequest
+	(*UnsubscribeResponse)(nil),       // 17: auctionservice.UnsubscribeResponse
+	(*GetSubscribedLotsRequest)(nil),  // 18: auctionservice.GetSubscribedLotsRequest
+	(*GetSubscribedLotsResponse)(nil), // 19: auctionservice.GetSubscribedLotsResponse
 }
 var file_api_auction_service_proto_depIdxs = []int32{
 	0,  // 0: auctionservice.LotFull.status:type_name -> auctionservice.LotStatus
@@ -1130,25 +1434,32 @@ var file_api_auction_service_proto_depIdxs = []int32{
 	0,  // 3: auctionservice.GetLotsRequest.status:type_name -> auctionservice.LotStatus
 	2,  // 4: auctionservice.GetLotsResponse.content:type_name -> auctionservice.LotShort
 	0,  // 5: auctionservice.UpdateLotRequest.status:type_name -> auctionservice.LotStatus
-	3,  // 6: auctionservice.LotGrpcService.CreateLot:input_type -> auctionservice.CreateLotRequest
-	4,  // 7: auctionservice.LotGrpcService.GetLot:input_type -> auctionservice.GetLotRequest
-	5,  // 8: auctionservice.LotGrpcService.GetLots:input_type -> auctionservice.GetLotsRequest
-	7,  // 9: auctionservice.LotGrpcService.UpdateLot:input_type -> auctionservice.UpdateLotRequest
-	8,  // 10: auctionservice.LotGrpcService.DeleteLot:input_type -> auctionservice.DeleteLotRequest
-	10, // 11: auctionservice.BidGrpcService.PlaceBid:input_type -> auctionservice.PlaceBidRequest
-	12, // 12: auctionservice.BidGrpcService.GetCurrentPrice:input_type -> auctionservice.GetCurrentPriceRequest
-	1,  // 13: auctionservice.LotGrpcService.CreateLot:output_type -> auctionservice.LotFull
-	1,  // 14: auctionservice.LotGrpcService.GetLot:output_type -> auctionservice.LotFull
-	6,  // 15: auctionservice.LotGrpcService.GetLots:output_type -> auctionservice.GetLotsResponse
-	1,  // 16: auctionservice.LotGrpcService.UpdateLot:output_type -> auctionservice.LotFull
-	9,  // 17: auctionservice.LotGrpcService.DeleteLot:output_type -> auctionservice.DeleteLotResponse
-	11, // 18: auctionservice.BidGrpcService.PlaceBid:output_type -> auctionservice.BidProto
-	13, // 19: auctionservice.BidGrpcService.GetCurrentPrice:output_type -> auctionservice.CurrentPriceProto
-	13, // [13:20] is the sub-list for method output_type
-	6,  // [6:13] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	2,  // 6: auctionservice.GetSubscribedLotsResponse.lots:type_name -> auctionservice.LotShort
+	3,  // 7: auctionservice.LotGrpcService.CreateLot:input_type -> auctionservice.CreateLotRequest
+	4,  // 8: auctionservice.LotGrpcService.GetLot:input_type -> auctionservice.GetLotRequest
+	5,  // 9: auctionservice.LotGrpcService.GetLots:input_type -> auctionservice.GetLotsRequest
+	7,  // 10: auctionservice.LotGrpcService.UpdateLot:input_type -> auctionservice.UpdateLotRequest
+	8,  // 11: auctionservice.LotGrpcService.DeleteLot:input_type -> auctionservice.DeleteLotRequest
+	10, // 12: auctionservice.BidGrpcService.PlaceBid:input_type -> auctionservice.PlaceBidRequest
+	12, // 13: auctionservice.BidGrpcService.GetCurrentPrice:input_type -> auctionservice.GetCurrentPriceRequest
+	14, // 14: auctionservice.SubscriptionGrpcService.Subscribe:input_type -> auctionservice.SubscribeRequest
+	16, // 15: auctionservice.SubscriptionGrpcService.Unsubscribe:input_type -> auctionservice.UnsubscribeRequest
+	18, // 16: auctionservice.SubscriptionGrpcService.GetSubscribedLots:input_type -> auctionservice.GetSubscribedLotsRequest
+	1,  // 17: auctionservice.LotGrpcService.CreateLot:output_type -> auctionservice.LotFull
+	1,  // 18: auctionservice.LotGrpcService.GetLot:output_type -> auctionservice.LotFull
+	6,  // 19: auctionservice.LotGrpcService.GetLots:output_type -> auctionservice.GetLotsResponse
+	1,  // 20: auctionservice.LotGrpcService.UpdateLot:output_type -> auctionservice.LotFull
+	9,  // 21: auctionservice.LotGrpcService.DeleteLot:output_type -> auctionservice.DeleteLotResponse
+	11, // 22: auctionservice.BidGrpcService.PlaceBid:output_type -> auctionservice.BidProto
+	13, // 23: auctionservice.BidGrpcService.GetCurrentPrice:output_type -> auctionservice.CurrentPriceProto
+	15, // 24: auctionservice.SubscriptionGrpcService.Subscribe:output_type -> auctionservice.SubscribeResponse
+	17, // 25: auctionservice.SubscriptionGrpcService.Unsubscribe:output_type -> auctionservice.UnsubscribeResponse
+	19, // 26: auctionservice.SubscriptionGrpcService.GetSubscribedLots:output_type -> auctionservice.GetSubscribedLotsResponse
+	17, // [17:27] is the sub-list for method output_type
+	7,  // [7:17] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_api_auction_service_proto_init() }
@@ -1163,9 +1474,9 @@ func file_api_auction_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_auction_service_proto_rawDesc), len(file_api_auction_service_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   13,
+			NumMessages:   19,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   3,
 		},
 		GoTypes:           file_api_auction_service_proto_goTypes,
 		DependencyIndexes: file_api_auction_service_proto_depIdxs,

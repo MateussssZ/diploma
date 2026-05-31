@@ -1,0 +1,12 @@
+RESTServer:
+  ListenPort: "8084"
+  ReadTimeout: "30s"
+  WriteTimeout: "30s"
+  ShutdownTimeout: "5s"
+
+AuctionService:
+  Address: "auction_app:9090"
+
+AuthService:
+  SocketPath: "/sockets/authservice.sock"
+  JWTSecret: "change-me-in-production-use-a-long-random-secret"

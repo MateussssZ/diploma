@@ -53,7 +53,6 @@ type IAuctionActions interface {
 	PlaceBid(ctx context.Context, auctionID string, amount int64, userID string) (*models.PlaceBidResponse, error)
 }
 
-
 type ICacheInvalidator interface {
 	InvalidateAuctionCache(ctx context.Context, auctionID string)
 }
@@ -96,7 +95,7 @@ type WSManager struct {
 }
 
 // WSManagerConfig holds runtime-tunable parameters for WSManager.
-// All values come from config.yaml 
+// All values come from config.yaml
 type WSManagerConfig struct {
 	NumActionWorkers    int // goroutines executing blocking gRPC calls
 	NumBroadcastWorkers int // goroutines draining broadcastCh
@@ -461,7 +460,7 @@ func (m *WSManager) handleCreateAuction(ctx context.Context, conn *connection, r
 		return
 	}
 
-	callCtx, cancel := context.WithTimeout(ctx, actionCallTimeout)
+	callCtx, cancel := context.WithTimeout(context.Background(), actionCallTimeout)
 	defer cancel()
 
 	auctionID, err := m.actions.CreateAuction(callCtx, req, conn.userID)
@@ -495,7 +494,10 @@ func (m *WSManager) handlePlaceBid(ctx context.Context, conn *connection, auctio
 		return
 	}
 
-	callCtx, cancel := context.WithTimeout(ctx, actionCallTimeout)
+	// Use a detached context so the gRPC call completes even if the client
+	// disconnects before we finish (the connection ctx would be canceled in
+	// that case, which would abort an in-flight PlaceBid call).
+	callCtx, cancel := context.WithTimeout(context.Background(), actionCallTimeout)
 	defer cancel()
 
 	result, err := m.actions.PlaceBid(callCtx, auctionID, p.Amount, conn.userID)
